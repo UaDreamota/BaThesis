@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 import pandas as pd
 from io import BytesIO
+from collections.abc import Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -41,19 +42,30 @@ class ManifestoApiClient:
         return pd.read_excel(BytesIO(resp.content))
 
     def list_parties_by_country(
-        self, mpds: pd.DataFrame, countryname: str
+        self,
+        mpds: pd.DataFrame,
+        countryname: str | Sequence[str],
     ) -> pd.DataFrame:
         cols = [
             c
             for c in ["countryname", "party", "partyname", "partyabbrev"]
             if c in mpds.columns
         ]
+
+        if isinstance(countryname, str):
+            countries = [countryname]
+        else:
+            countries = list(countryname)
+
+        countries = [c.strip().strip(",") for c in countries if c and c.strip()]
+
         out = (
-            mpds.loc[mpds["countryname"] == countryname, cols]
+            mpds.loc[mpds["countryname"].isin(countries), cols]
             .drop_duplicates()
-            .sort_values(["partyname", "party"])
+            .sort_values(["countryname", "partyname", "party"])
             .reset_index(drop=True)
         )
+
         return out
 
     def list_dates_for_party(self, mpds: pd.DataFrame, party_id: int) -> pd.DataFrame:
@@ -121,15 +133,36 @@ manifesto_client = ManifestoApiClient(
 )
 
 
+# How to use it:
+# The list_parties_by_country - can be usefull to compare the two parties
+# The list_dates_for_party - to get the manifesto dates (will be comparing to extract properly)
+# The get_text_for_party_date - can be in English translation
+
+
 def main():
     print(manifesto_client.test_api())
     mpds = manifesto_client.fetch_mpds()
     ua_parties = manifesto_client.list_parties_by_country(mpds, "Ukraine")
     print(ua_parties)
     print("Total unique UA parties:", len(ua_parties))
-    party_id = 98615
+    party_id = 98952  # Yuschenko - 98615
     dates_df = manifesto_client.list_dates_for_party(mpds, party_id)
     print(dates_df)
+
+    chosen_date = int(dates_df["date"].max())
+    result = manifesto_client.get_text_for_party_date(
+        party_id, chosen_date, translation=None
+    )
+
+    print("doc_key:", result["doc_key"])
+    print("manifesto_id:", result["manifesto_id"])
+    print("Text item keys:", list(result["text_item"].keys()))
+
+    text_item = result["text_item"]
+    text_item_df = pd.DataFrame.from_dict(text_item)
+    text_item_df.to_csv("result_text.csv")
+    result_df = pd.DataFrame.from_dict(result)
+    result_df.to_csv("result.csv")
     return None
 
 
