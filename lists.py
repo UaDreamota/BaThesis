@@ -1,3 +1,6 @@
+# downloads lists of parties, given country.
+# I want to implement that the list would work.
+
 import pandas as pd
 from scripts.api_client import ManifestoApiClient
 from pathlib import Path
