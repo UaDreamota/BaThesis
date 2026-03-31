@@ -1,0 +1,25 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+0UBS,0UBS,0UBS,party,12,unmapped,,,,,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+64RT,64RT,64RT,party,36,unmapped,,,,,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+A,A,A,party,635,mapped,manual_alias,51430.0,Alliance Party of Northern Ireland,Alliance,
+BI,BI,BI,parliamentary_label,7930,unmapped,,,,,Bishops are not a manifesto party.
+CB,CB,CB,parliamentary_label,65076,unmapped,,,,,"Crossbench is a Lords grouping, not a manifesto party."
+CON,CON,CON,party,727321,mapped,manual_alias,51620.0,Conservative Party,Conservatives,
+DUP,DUP,DUP,party,16190,mapped,exact_abbrev,51903.0,Democratic Unionist Party,DUP,
+GP,GP,GP,party,7906,mapped,manual_alias,51110.0,Green Party of England and Wales,GPEW,
+I,I,I,independent,8364,unmapped,,,,,Independent speakers are not a manifesto party.
+IGC,IGC,IGC,party,276,unmapped,,,,,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+IL,IL,IL,independent,357,unmapped,,,,,Independent Labour is not an MPDS manifesto party.
+L8TA,L8TA,L8TA,independent,174,unmapped,,,,,Independent Liberal Democrat is not an MPDS manifesto party.
+LAB,LAB,LAB,party,374081,mapped,manual_alias,51320.0,Labour Party,Labour,
+LD,LD,LD,party,105758,mapped,manual_alias,51421.0,Liberal Democrats,LibDems,
+LI,LI,LI,independent,303,unmapped,,,,,Labour Independent is not an MPDS manifesto party.
+LJ95,LJ95,LJ95,party,133,unmapped,,,,,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+PAUB,PAUB,PAUB,party,396,unmapped,,,,,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+PC,PC,PC,party,5904,mapped,exact_abbrev,51901.0,The Party of Wales,PC,
+QMZZ,QMZZ,QMZZ,independent,137,unmapped,,,,,Independent Ulster Unionist is not an MPDS manifesto party.
+SDLP,SDLP,SDLP,party,2073,mapped,exact_abbrev,51340.0,Social Democratic and Labour Party,SDLP,
+SNP,SNP,SNP,party,66669,mapped,exact_abbrev,51902.0,Scottish National Party,SNP,
+UKIP,UKIP,UKIP,party,845,mapped,exact_abbrev,51951.0,United Kingdom Independence Party,UKIP,
+UUP,UUP,UUP,party,1985,mapped,exact_abbrev,51621.0,Ulster Unionist Party,UUP,
+ZKPW,ZKPW,ZKPW,independent,158,unmapped,,,,,Independent Social Democrat is not an MPDS manifesto party.

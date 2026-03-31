@@ -1,0 +1,10 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+AP,AP,AP,party,18575,mapped,manual_alias,87042,Development/For!,,
+JK,JK,JK,party,35619,mapped,manual_alias,87640,New Conservative Party,,
+JV,JV,JV,party,15181,mapped,manual_alias,87063,New Unity,JV,
+KPV-LV,KPV-LV,KPVLV,party,25869,mapped,manual_alias,87730,Who owns the state?,KPV LV,
+LRA,LRA,LRA,party,6039,mapped,manual_alias,87901,Latvian Association of Regions,,
+NSL,NSL,NSL,party,7356,mapped,manual_alias,87630,For Latvia from the Heart,,Speech label uses the Latvian abbreviation No sirds Latvijai.
+SASKAŅA,SASKAŅA,SASKANA,party,48975,mapped,manual_alias,87340,"Social Democartic Party ""Harmony""",SDPS,Speech label uses the Latvian party name SASKAŅA.
+VIENOTĪBA,VIENOTĪBA,VIENOTIBA,party,22588,mapped,manual_alias,87062,Unity,,Speech label uses the Latvian party name Vienotiba / Unity.
+ZZS,ZZS,ZZS,party,43198,mapped,manual_alias,87110,Greens' and Farmers’ Union,ZZS,

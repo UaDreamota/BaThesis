@@ -1,0 +1,14 @@
+speech_party,speech_label_type,n_rows,mapping_note
+I,independent,8364,Independent speakers are not a manifesto party.
+IL,independent,357,Independent Labour is not an MPDS manifesto party.
+L8TA,independent,174,Independent Liberal Democrat is not an MPDS manifesto party.
+LI,independent,303,Labour Independent is not an MPDS manifesto party.
+QMZZ,independent,137,Independent Ulster Unionist is not an MPDS manifesto party.
+ZKPW,independent,158,Independent Social Democrat is not an MPDS manifesto party.
+BI,parliamentary_label,7930,Bishops are not a manifesto party.
+CB,parliamentary_label,65076,"Crossbench is a Lords grouping, not a manifesto party."
+0UBS,party,12,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+64RT,party,36,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+IGC,party,276,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+LJ95,party,133,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.
+PAUB,party,396,Party label present in GB parliamentary speeches but not mapped to an MPDS United Kingdom party.

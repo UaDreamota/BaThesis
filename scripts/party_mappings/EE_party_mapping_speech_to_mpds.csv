@@ -1,0 +1,7 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+EKRE,EKRE,EKRE,party,39527,mapped,manual_alias,83720,Conservative People's Party of Estonia,EKRE,
+ISA,ISA,ISA,party,63724,mapped,manual_alias,83611,Pro Patria and Res Publica Union,IRL,Speech label uses the later Isamaa abbreviation.
+KE,KE,KE,party,82130,mapped,manual_alias,83411,Estonian Center Party,K,"Speech label KE refers to Keskerakond / Estonian Center Party, not the older Coalition Party."
+RE,RE,RE,party,93790,mapped,manual_alias,83430,Estonian Reform Party,ER,
+SDE,SDE,SDE,party,53580,mapped,manual_alias,83410,Social Democratic Party,SDE,
+VABA,VABA,VABA,party,11201,mapped,manual_alias,83440,Free Party,EVA,
