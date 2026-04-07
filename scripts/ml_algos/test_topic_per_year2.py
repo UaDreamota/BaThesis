@@ -94,8 +94,8 @@ def transform_data(data: pd.DataFrame, country_code: str):
     return X
 
 def perplexity_magic(X):
-    n_topics_range = list(range(30, 41))
-
+    # n_topics_range = list(range(30, 41))
+    n_topics_range = [45, 55, 57, 58, 59, 60, 65]
     results = {}
     for n_topics in n_topics_range:
         lda = LatentDirichletAllocation(
