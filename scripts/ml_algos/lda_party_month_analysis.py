@@ -2,10 +2,10 @@ from pathlib import Path
 import argparse
 import os
 import re
+import sys
 import pandas as pd 
 import numpy as np
 
-import datetime
 from time import perf_counter
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -20,16 +20,45 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from sklearn.decomposition import LatentDirichletAllocation, PCA
+from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer
+
+
+PACKAGE_ROOT = SCRIPT_DIR.parent
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.append(str(PACKAGE_ROOT))
+
+from ml_algos.scores_lda.held_out_perplexity import (
+    PerplexitySummary,
+    compute_perplexity_profile,
+)
+from ml_algos.scores_lda.coherence_scores import (
+    CoherenceSummary,
+    compute_coherence_profile,
+)
 
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--c", default=None, type=str, help="Country's abbreveation")
 parser.add_argument("--top-parties", default=3, type=int, help="Number of biggest parties to keep")
+parser.add_argument(
+    "--n-runs",
+    default=0,
+    type=int,
+    help="If > 0, compute held-out perplexity over N random train/test runs; also used for coherence runs when enabled.",
+)
+parser.add_argument(
+    "--coherence",
+    action="store_true",
+    help="Compute average topic NPMI and c_v using the shared --n-runs value.",
+)
+parser.add_argument(
+    "--coherence-top-n",
+    default=10,
+    type=int,
+    help="Number of top words per topic to use for NPMI and c_v coherence.",
+)
 
 
 
@@ -38,8 +67,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "parlam" 
 OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches"
 PERPLEXITY_DIR = OUTPUT_DIR / "perplexities"
+COHERENCE_DIR = OUTPUT_DIR / "coherences"
 TOPIC_DISTRIBUTION_DIR = OUTPUT_DIR / "topic_distributions"
 STOPWORDS_DIR = Path(__file__).resolve().parent / "stopwords"
+DEFAULT_RANDOM_SEED = 42
+HELD_OUT_TEST_SIZE = 0.2
+TOPIC_COUNTS = [45, 55, 57, 58, 59, 60, 65]
 
 
 def load_stopwords(country_code: str) -> list[str]:
@@ -88,31 +121,27 @@ def aggregate_party_month(data: pd.DataFrame) -> pd.DataFrame:
         .reset_index(drop=True)
     )
 
+
+def build_vectorizer(country_code: str) -> CountVectorizer:
+    return CountVectorizer(stop_words=load_stopwords(country_code))
+
+
 def transform_data(data: pd.DataFrame, country_code: str):
-    Vectorizer = CountVectorizer(stop_words=load_stopwords(country_code))
-    X = Vectorizer.fit_transform(data["text"])
+    vectorizer = build_vectorizer(country_code)
+    X = vectorizer.fit_transform(data["text"])
     return X
 
-def perplexity_magic(X):
-    # n_topics_range = list(range(30, 41))
-    n_topics_range = [45, 55, 57, 58, 59, 60, 65]
-    results = {}
-    for n_topics in n_topics_range:
-        lda = LatentDirichletAllocation(
-            n_components=n_topics,
-            random_state=42,
-            learning_method="batch",
-        )
-        lda.fit(X)
-        results[n_topics] = lda.perplexity(X)
-    return results
 
-def build_topic_distribution(X, n_topics: int) -> pd.DataFrame:
-    lda = LatentDirichletAllocation(
+def build_lda_model(n_topics: int, random_seed: int) -> LatentDirichletAllocation:
+    return LatentDirichletAllocation(
         n_components=n_topics,
-        random_state=42,
+        random_state=random_seed,
         learning_method="batch",
     )
+
+
+def build_topic_distribution(X, n_topics: int) -> pd.DataFrame:
+    lda = build_lda_model(n_topics, DEFAULT_RANDOM_SEED)
     return pd.DataFrame(lda.fit_transform(X))
 
 
@@ -148,34 +177,79 @@ def build_perplexity_profiles(
     speeches_df: pd.DataFrame,
     country_code: str,
     top_party_count: int,
-) -> dict[str, dict[int, float]]:
-    profiles: dict[str, dict[int, float]] = {}
+    n_runs: int = 0,
+) -> dict[str, dict[int, PerplexitySummary]]:
+    profiles: dict[str, dict[int, PerplexitySummary]] = {}
+    stop_words = load_stopwords(country_code)
+
+    def evaluate_profile(aggregated_df: pd.DataFrame) -> dict[int, PerplexitySummary]:
+        return compute_perplexity_profile(
+            texts=aggregated_df["text"].tolist(),
+            stop_words=stop_words,
+            topic_counts=TOPIC_COUNTS,
+            held_out_runs=n_runs,
+            base_random_seed=DEFAULT_RANDOM_SEED,
+            test_size=HELD_OUT_TEST_SIZE,
+        )
 
     all_aggregated = aggregate_party_month(speeches_df)
-    profiles["all_parties"] = perplexity_magic(transform_data(all_aggregated, country_code))
+    profiles["all_parties"] = evaluate_profile(all_aggregated)
 
     top_one_aggregated = aggregate_party_month(keep_top_parties(speeches_df, n_parties=1))
-    profiles["top_1_party"] = perplexity_magic(transform_data(top_one_aggregated, country_code))
+    profiles["top_1_party"] = evaluate_profile(top_one_aggregated)
 
     top_n_aggregated = aggregate_party_month(
         keep_top_parties(speeches_df, n_parties=top_party_count),
     )
-    profiles[f"top_{top_party_count}_parties"] = perplexity_magic(
-        transform_data(top_n_aggregated, country_code),
-    )
+    profiles[f"top_{top_party_count}_parties"] = evaluate_profile(top_n_aggregated)
 
     return profiles
 
 
-def choose_topic_count(results: dict[str, dict[int, float]], top_party_count: int) -> int:
+def build_coherence_profiles(
+    speeches_df: pd.DataFrame,
+    country_code: str,
+    top_party_count: int,
+    n_runs: int,
+    coherence_top_n: int,
+) -> dict[str, dict[int, CoherenceSummary]]:
+    profiles: dict[str, dict[int, CoherenceSummary]] = {}
+    stop_words = load_stopwords(country_code)
+
+    def evaluate_profile(aggregated_df: pd.DataFrame) -> dict[int, CoherenceSummary]:
+        return compute_coherence_profile(
+            texts=aggregated_df["text"].tolist(),
+            stop_words=stop_words,
+            topic_counts=TOPIC_COUNTS,
+            n_runs=n_runs,
+            base_random_seed=DEFAULT_RANDOM_SEED,
+            top_n_words=coherence_top_n,
+        )
+
+    all_aggregated = aggregate_party_month(speeches_df)
+    profiles["all_parties"] = evaluate_profile(all_aggregated)
+
+    top_one_aggregated = aggregate_party_month(keep_top_parties(speeches_df, n_parties=1))
+    profiles["top_1_party"] = evaluate_profile(top_one_aggregated)
+
+    top_n_aggregated = aggregate_party_month(
+        keep_top_parties(speeches_df, n_parties=top_party_count),
+    )
+    profiles[f"top_{top_party_count}_parties"] = evaluate_profile(top_n_aggregated)
+
+    return profiles
+
+
+def choose_topic_count(results: dict[str, dict[int, PerplexitySummary]], top_party_count: int) -> int:
     selection_key = f"top_{top_party_count}_parties"
-    return min(results[selection_key], key=results[selection_key].get)
+    return min(results[selection_key], key=lambda n_topics: results[selection_key][n_topics].mean)
 
 
 def save_perplexity_plot(
-    results: dict[str, dict[int, float]],
+    results: dict[str, dict[int, PerplexitySummary]],
     country_code: str,
     selected_topics: int,
+    held_out_runs: int,
 ) -> Path:
     country_dir = PERPLEXITY_DIR / country_code.upper()
     country_dir.mkdir(parents=True, exist_ok=True)
@@ -188,13 +262,26 @@ def save_perplexity_plot(
     fig, ax = plt.subplots(figsize=(9, 6))
     for key, profile in results.items():
         topics = list(profile.keys())
-        perplexities = list(profile.values())
-        ax.plot(topics, perplexities, marker="o", label=label_map.get(key, key.replace("_", " ")))
+        mean_perplexities = [profile[n_topics].mean for n_topics in topics]
+        std_perplexities = [profile[n_topics].std for n_topics in topics]
+        label = label_map.get(key, key.replace("_", " "))
+        if held_out_runs > 0:
+            ax.errorbar(
+                topics,
+                mean_perplexities,
+                yerr=std_perplexities,
+                fmt="-o",
+                capsize=3,
+                label=label,
+            )
+        else:
+            ax.plot(topics, mean_perplexities, marker="o", label=label)
 
     ax.axvline(selected_topics, color="black", linestyle="--", linewidth=1, label=f"Selected topics: {selected_topics}")
-    ax.set_title(f"{country_code.upper()} perplexity by topic count")
+    metric_name = "Held-out perplexity" if held_out_runs > 0 else "Perplexity"
+    ax.set_title(f"{country_code.upper()} {metric_name.lower()} by topic count")
     ax.set_xlabel("Number of topics")
-    ax.set_ylabel("Perplexity")
+    ax.set_ylabel(f"{metric_name} (mean +/- SD)" if held_out_runs > 0 else metric_name)
     ax.grid(True, alpha=0.3)
     ax.legend()
     fig.tight_layout()
@@ -203,6 +290,67 @@ def save_perplexity_plot(
     fig.savefig(plot_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
     return plot_path
+
+
+def format_perplexity_results(
+    results: dict[str, dict[int, PerplexitySummary]],
+) -> dict[str, dict[int, dict[str, float | int]]]:
+    return {
+        profile_name: {
+            n_topics: {
+                "mean": round(summary.mean, 4),
+                "std": round(summary.std, 4),
+                "runs": summary.runs,
+            }
+            for n_topics, summary in profile.items()
+        }
+        for profile_name, profile in results.items()
+    }
+
+
+def format_coherence_results(
+    results: dict[str, dict[int, CoherenceSummary]],
+) -> dict[str, dict[int, dict[str, float | int]]]:
+    return {
+        profile_name: {
+            n_topics: {
+                "npmi_mean": round(summary.npmi.mean, 4),
+                "npmi_std": round(summary.npmi.std, 4),
+                "c_v_mean": round(summary.c_v.mean, 4),
+                "c_v_std": round(summary.c_v.std, 4),
+                "runs": summary.npmi.runs,
+            }
+            for n_topics, summary in profile.items()
+        }
+        for profile_name, profile in results.items()
+    }
+
+
+def save_coherence_results(
+    results: dict[str, dict[int, CoherenceSummary]],
+    country_code: str,
+) -> Path:
+    country_dir = COHERENCE_DIR / country_code.upper()
+    country_dir.mkdir(parents=True, exist_ok=True)
+
+    rows: list[dict[str, float | int | str]] = []
+    for profile_name, profile in results.items():
+        for n_topics, summary in profile.items():
+            rows.append(
+                {
+                    "profile": profile_name,
+                    "n_topics": n_topics,
+                    "npmi_mean": summary.npmi.mean,
+                    "npmi_std": summary.npmi.std,
+                    "c_v_mean": summary.c_v.mean,
+                    "c_v_std": summary.c_v.std,
+                    "runs": summary.npmi.runs,
+                }
+            )
+
+    csv_path = country_dir / f"{country_code.upper()}_coherence.csv"
+    pd.DataFrame(rows).sort_values(["profile", "n_topics"]).to_csv(csv_path, index=False)
+    return csv_path
 
 
 def save_topic_distribution_plot(
@@ -296,19 +444,61 @@ def save_topic_distribution_plot(
 
 
 def main(args: argparse.Namespace):
+    if args.n_runs < 0:
+        raise ValueError("--n-runs must be >= 0.")
+    if args.coherence_top_n < 2:
+        raise ValueError("--coherence-top-n must be >= 2.")
+    if args.coherence and args.n_runs <= 0:
+        raise ValueError("--coherence requires --n-runs > 0.")
+
     df = load_country(args.c)
     aggregated_df = aggregate_party_month(df)
     print(aggregated_df.info())
     X = transform_data(aggregated_df, args.c)
-    start = perf_counter()
-    results = build_perplexity_profiles(df, args.c, top_party_count=args.top_parties)
-    end = perf_counter()
-    best_n_topics = choose_topic_count(results, top_party_count=args.top_parties)
-    perplexity_plot_path = save_perplexity_plot(results, args.c, selected_topics=best_n_topics)
+    perplexity_start = perf_counter()
+    perplexity_results = build_perplexity_profiles(
+        df,
+        args.c,
+        top_party_count=args.top_parties,
+        n_runs=args.n_runs,
+    )
+    perplexity_end = perf_counter()
+    best_n_topics = choose_topic_count(perplexity_results, top_party_count=args.top_parties)
+    perplexity_plot_path = save_perplexity_plot(
+        perplexity_results,
+        args.c,
+        selected_topics=best_n_topics,
+        held_out_runs=args.n_runs,
+    )
+
+    coherence_results: dict[str, dict[int, CoherenceSummary]] | None = None
+    coherence_csv_path: Path | None = None
+    coherence_elapsed: float | None = None
+    if args.coherence:
+        coherence_start = perf_counter()
+        coherence_results = build_coherence_profiles(
+            df,
+            args.c,
+            top_party_count=args.top_parties,
+            n_runs=args.n_runs,
+            coherence_top_n=args.coherence_top_n,
+        )
+        coherence_elapsed = perf_counter() - coherence_start
+        coherence_csv_path = save_coherence_results(coherence_results, args.c)
+
     distribution_df = prepare_topic_distribution(aggregated_df, X, best_n_topics)
     save_topic_distribution_plot(distribution_df, best_n_topics, args.c)
-    print(f"Time taken for clustering:{end-start}")
-    print(results)
+    print(f"Time taken for perplexity evaluation: {perplexity_end - perplexity_start}")
+    print(format_perplexity_results(perplexity_results))
+    if args.n_runs > 0:
+        print(f"Used held-out perplexity over {args.n_runs} runs with test size {HELD_OUT_TEST_SIZE}.")
+    if coherence_results is not None and coherence_elapsed is not None and coherence_csv_path is not None:
+        print(f"Time taken for coherence evaluation: {coherence_elapsed}")
+        print(format_coherence_results(coherence_results))
+        print(
+            f"Used coherence metrics over {args.n_runs} runs with top {args.coherence_top_n} words per topic."
+        )
+        print(f"Saved coherence results to: {coherence_csv_path}")
     print(f"Selected topic count from top {args.top_parties} parties: {best_n_topics}")
     print(f"Saved perplexity plot to: {perplexity_plot_path}")
     print(f"Saved topic distribution plots to: {TOPIC_DISTRIBUTION_DIR / args.c.upper()}")
