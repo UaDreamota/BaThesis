@@ -3,6 +3,7 @@ import argparse
 import os
 import re
 import pandas as pd 
+import numpy as np
 
 import datetime
 from time import perf_counter
@@ -90,11 +91,10 @@ def aggregate_party_month(data: pd.DataFrame) -> pd.DataFrame:
 def transform_data(data: pd.DataFrame, country_code: str):
     Vectorizer = CountVectorizer(stop_words=load_stopwords(country_code))
     X = Vectorizer.fit_transform(data["text"])
-    print(type(X))
     return X
 
 def perplexity_magic(X):
-    n_topics_range = list(range(12, 20))
+    n_topics_range = list(range(30, 41))
 
     results = {}
     for n_topics in n_topics_range:
@@ -118,6 +118,15 @@ def build_topic_distribution(X, n_topics: int) -> pd.DataFrame:
 
 def sanitize_filename(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]+", "_", value).strip("_")
+
+
+def generate_topic_colors(topic_count: int):
+    if topic_count <= 0:
+        return []
+
+    # Sample evenly across a continuous colormap so topic colors stay distinct
+    # even when the number of topics exceeds the size of discrete palettes.
+    return plt.cm.gist_ncar(np.linspace(0, 1, topic_count, endpoint=False))
 
 
 def prepare_topic_distribution(
@@ -206,7 +215,7 @@ def save_topic_distribution_plot(
 
     topic_columns = [col for col in distribution_df.columns if col.startswith("topic_")]
     parties = sorted(distribution_df["party"].unique())
-    colors = plt.cm.tab20(range(len(topic_columns)))
+    colors = generate_topic_colors(len(topic_columns))
     saved_paths: list[Path] = []
 
     ncols = 2

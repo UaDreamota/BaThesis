@@ -3,6 +3,7 @@ import argparse
 import os
 import re
 
+import numpy as np
 import pandas as pd
 
 
@@ -111,7 +112,7 @@ def save_topic_distribution_plot(
 
     topic_columns = [col for col in distribution_df.columns if col not in {"party", "month", "month_start"}]
     parties = sorted(distribution_df["party"].unique())
-    colors = plt.cm.tab20(range(len(topic_columns)))
+    colors = plt.cm.gist_ncar(np.linspace(0, 1, len(topic_columns), endpoint=False))
     saved_paths: list[Path] = []
 
     ncols = 2
