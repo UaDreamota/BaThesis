@@ -2,6 +2,7 @@ from pathlib import Path
 import argparse
 import os
 import re
+import sys
 
 import numpy as np
 import pandas as pd
@@ -20,6 +21,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
+PACKAGE_ROOT = SCRIPT_DIR.parent
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.append(str(PACKAGE_ROOT))
+
+from path_config import get_parlam_csv_path
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--c", required=True, type=str, help="Country's abbreveation")
 parser.add_argument(
@@ -31,12 +39,11 @@ parser.add_argument(
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data" / "parlam"
 OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches" / "annotated_topic_distributions"
 
 
 def load_country(country_code: str) -> pd.DataFrame:
-    path = DATA_DIR / f"ParlaMint-{country_code}_extracted.csv"
+    path = get_parlam_csv_path(country_code)
     if not path.exists():
         raise FileNotFoundError(f"Could not find ParlaMint file: {path}")
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -9,8 +10,15 @@ from pathlib import Path
 import pandas as pd
 
 
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.append(str(PACKAGE_ROOT))
+
+from path_config import get_parlam_csv_path, get_parlam_data_dir
+
+
 BASE_DIR = Path(__file__).resolve().parents[1]
-PARLA_DATA_DIR = BASE_DIR / "data" / "parlam"
+PARLA_DATA_DIR = get_parlam_data_dir()
 MPDS_PATH = BASE_DIR / "data" / "MPDataset_MPDS2025a.csv"
 OUTPUT_DIR = Path(__file__).resolve().parent / "party_mappings"
 
@@ -195,38 +203,38 @@ COUNTRY_CONFIGS: dict[str, CountryConfig] = {
     "UA": CountryConfig(
         code="UA",
         manifesto_country="Ukraine",
-        parla_path=PARLA_DATA_DIR / "ParlaMint-UA_extracted.csv",
+        parla_path=get_parlam_csv_path("UA"),
         manual_map=UKRAINE_MANUAL_MPDS_MAP,
     ),
     "GB": CountryConfig(
         code="GB",
         manifesto_country="United Kingdom",
-        parla_path=PARLA_DATA_DIR / "ParlaMint-GB_extracted.csv",
+        parla_path=get_parlam_csv_path("GB"),
         manual_map=GB_MANUAL_MPDS_MAP,
         non_party_labels=GB_NON_PARTY_LABELS,
     ),
     "EE": CountryConfig(
         code="EE",
         manifesto_country="Estonia",
-        parla_path=PARLA_DATA_DIR / "ParlaMint-EE_extracted.csv",
+        parla_path=get_parlam_csv_path("EE"),
         manual_map=EE_MANUAL_MPDS_MAP,
     ),
     "LV": CountryConfig(
         code="LV",
         manifesto_country="Latvia",
-        parla_path=PARLA_DATA_DIR / "ParlaMint-LV_extracted.csv",
+        parla_path=get_parlam_csv_path("LV"),
         manual_map=LV_MANUAL_MPDS_MAP,
     ),
     "CZ": CountryConfig(
         code="CZ",
         manifesto_country="Czech Republic",
-        parla_path=PARLA_DATA_DIR / "ParlaMint-CZ_extracted.csv",
+        parla_path=get_parlam_csv_path("CZ"),
         non_party_labels=CZ_NON_PARTY_LABELS,
     ),
     "LT": CountryConfig(
         code="LT",
         manifesto_country="Lithuania",
-        parla_path=PARLA_DATA_DIR / "ParlaMint-LT_extracted.csv",
+        parla_path=get_parlam_csv_path("LT"),
     ),
 }
 

@@ -28,6 +28,7 @@ PACKAGE_ROOT = SCRIPT_DIR.parent
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.append(str(PACKAGE_ROOT))
 
+from path_config import get_parlam_csv_path
 from ml_algos.scores_lda.held_out_perplexity import (
     PerplexitySummary,
     compute_perplexity_profile,
@@ -64,7 +65,6 @@ parser.add_argument(
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data" / "parlam" 
 OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches"
 PERPLEXITY_DIR = OUTPUT_DIR / "perplexities"
 COHERENCE_DIR = OUTPUT_DIR / "coherences"
@@ -85,7 +85,7 @@ def load_stopwords(country_code: str) -> list[str]:
 
 
 def load_country(country_code: str) -> pd.DataFrame:
-    path = DATA_DIR / f"ParlaMint-{country_code}_extracted.csv"
+    path = get_parlam_csv_path(country_code)
     if not path.exists():
         raise FileNotFoundError(f"Could not find ParlaMint file: {path}")
 

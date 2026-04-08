@@ -4,6 +4,7 @@ import argparse
 import csv
 import datetime as dt
 import re
+import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +15,10 @@ XML_ID = "{http://www.w3.org/XML/1998/namespace}id"
 XML_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 NS = {"tei": TEI_NS}
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from path_config import get_parlam_data_dir
 
 
 @dataclass
@@ -726,6 +731,7 @@ def load_corpus_context(tei_root: Path) -> CorpusContext:
 
 
 def parse_args() -> argparse.Namespace:
+    parlam_data_dir = get_parlam_data_dir()
     parser = argparse.ArgumentParser(
         description=(
             "Extract ParlaMint TEI speeches/segments and procedural notes into CSV, "
@@ -735,7 +741,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tei-root",
         type=Path,
-        default=Path("data/parlam"),
+        default=parlam_data_dir,
         help=(
             "Path to a single ParlaMint .TEI directory, "
             "or to a parent folder that contains multiple ParlaMint corpora."
@@ -744,13 +750,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("data/parlam/parlamint_extracted.csv"),
+        default=parlam_data_dir / "parlamint_extracted.csv",
         help="CSV output path.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/parlam"),
+        default=parlam_data_dir,
         help=(
             "Output directory when using --per-corpus. "
             "One CSV per corpus will be written here."
