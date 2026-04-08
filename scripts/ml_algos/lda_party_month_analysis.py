@@ -61,10 +61,7 @@ parser.add_argument(
     help="Number of top words per topic to use for NPMI and c_v coherence.",
 )
 
-
-
-
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = SCRIPT_DIR.parent.parent
 OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches"
 PERPLEXITY_DIR = OUTPUT_DIR / "perplexities"
 COHERENCE_DIR = OUTPUT_DIR / "coherences"
@@ -72,7 +69,7 @@ TOPIC_DISTRIBUTION_DIR = OUTPUT_DIR / "topic_distributions"
 STOPWORDS_DIR = Path(__file__).resolve().parent / "stopwords"
 DEFAULT_RANDOM_SEED = 42
 HELD_OUT_TEST_SIZE = 0.2
-TOPIC_COUNTS = [45, 55, 57, 58, 59, 60, 65]
+TOPIC_COUNTS = [35, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
 
 
 def load_stopwords(country_code: str) -> list[str]:
@@ -261,21 +258,34 @@ def save_perplexity_plot(
 
     fig, ax = plt.subplots(figsize=(9, 6))
     for key, profile in results.items():
-        topics = list(profile.keys())
+        topics = sorted(profile.keys())
         mean_perplexities = [profile[n_topics].mean for n_topics in topics]
         std_perplexities = [profile[n_topics].std for n_topics in topics]
         label = label_map.get(key, key.replace("_", " "))
         if held_out_runs > 0:
+            line, = ax.plot(
+                topics,
+                mean_perplexities,
+                marker="o",
+                linewidth=2,
+                label=label,
+            )
+            color = line.get_color()
+            lower = [mean - std for mean, std in zip(mean_perplexities, std_perplexities, strict=False)]
+            upper = [mean + std for mean, std in zip(mean_perplexities, std_perplexities, strict=False)]
+            ax.fill_between(topics, lower, upper, color=color, alpha=0.12)
             ax.errorbar(
                 topics,
                 mean_perplexities,
                 yerr=std_perplexities,
-                fmt="-o",
-                capsize=3,
-                label=label,
+                fmt="none",
+                ecolor=color,
+                elinewidth=1.25,
+                capsize=4,
+                alpha=0.9,
             )
         else:
-            ax.plot(topics, mean_perplexities, marker="o", label=label)
+            ax.plot(topics, mean_perplexities, marker="o", linewidth=2, label=label)
 
     ax.axvline(selected_topics, color="black", linestyle="--", linewidth=1, label=f"Selected topics: {selected_topics}")
     metric_name = "Held-out perplexity" if held_out_runs > 0 else "Perplexity"
@@ -311,19 +321,48 @@ def format_perplexity_results(
 def format_coherence_results(
     results: dict[str, dict[int, CoherenceSummary]],
 ) -> dict[str, dict[int, dict[str, float | int]]]:
-    return {
-        profile_name: {
-            n_topics: {
-                "npmi_mean": round(summary.npmi.mean, 4),
-                "npmi_std": round(summary.npmi.std, 4),
-                "c_v_mean": round(summary.c_v.mean, 4),
-                "c_v_std": round(summary.c_v.std, 4),
-                "runs": summary.npmi.runs,
-            }
-            for n_topics, summary in profile.items()
+    rows = build_coherence_rows(results, round_digits=4)
+    formatted: dict[str, dict[int, dict[str, float | int]]] = {}
+    for row in rows:
+        profile_rows = formatted.setdefault(str(row["profile"]), {})
+        profile_rows[int(row["n_topics"])] = {
+            "npmi_mean": float(row["npmi_mean"]),
+            "npmi_std": float(row["npmi_std"]),
+            "c_v_mean": float(row["c_v_mean"]),
+            "c_v_std": float(row["c_v_std"]),
+            "runs": int(row["runs"]),
         }
-        for profile_name, profile in results.items()
-    }
+    return formatted
+
+
+def build_coherence_rows(
+    results: dict[str, dict[int, CoherenceSummary]],
+    round_digits: int | None = None,
+) -> list[dict[str, float | int | str]]:
+    def maybe_round(value: float) -> float:
+        return round(value, round_digits) if round_digits is not None else value
+
+    rows: list[dict[str, float | int | str]] = []
+    for profile_name, profile in results.items():
+        for n_topics, summary in profile.items():
+            if summary.npmi.runs != summary.c_v.runs:
+                raise ValueError(
+                    f"Mismatched coherence run counts for {profile_name} at {n_topics} topics: "
+                    f"npmi={summary.npmi.runs}, c_v={summary.c_v.runs}"
+                )
+
+            rows.append(
+                {
+                    "profile": profile_name,
+                    "n_topics": n_topics,
+                    "npmi_mean": maybe_round(summary.npmi.mean),
+                    "npmi_std": maybe_round(summary.npmi.std),
+                    "c_v_mean": maybe_round(summary.c_v.mean),
+                    "c_v_std": maybe_round(summary.c_v.std),
+                    "runs": summary.npmi.runs,
+                }
+            )
+    return rows
 
 
 def save_coherence_results(
@@ -333,21 +372,7 @@ def save_coherence_results(
     country_dir = COHERENCE_DIR / country_code.upper()
     country_dir.mkdir(parents=True, exist_ok=True)
 
-    rows: list[dict[str, float | int | str]] = []
-    for profile_name, profile in results.items():
-        for n_topics, summary in profile.items():
-            rows.append(
-                {
-                    "profile": profile_name,
-                    "n_topics": n_topics,
-                    "npmi_mean": summary.npmi.mean,
-                    "npmi_std": summary.npmi.std,
-                    "c_v_mean": summary.c_v.mean,
-                    "c_v_std": summary.c_v.std,
-                    "runs": summary.npmi.runs,
-                }
-            )
-
+    rows = build_coherence_rows(results, round_digits=4)
     csv_path = country_dir / f"{country_code.upper()}_coherence.csv"
     pd.DataFrame(rows).sort_values(["profile", "n_topics"]).to_csv(csv_path, index=False)
     return csv_path
