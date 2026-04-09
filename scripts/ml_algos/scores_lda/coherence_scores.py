@@ -25,11 +25,18 @@ def build_vectorizer(stop_words: list[str] | None) -> CountVectorizer:
     return CountVectorizer(stop_words=stop_words or None)
 
 
-def build_lda_model(n_topics: int, random_seed: int) -> LatentDirichletAllocation:
+def build_lda_model(
+    n_topics: int,
+    random_seed: int,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
+) -> LatentDirichletAllocation:
     return LatentDirichletAllocation(
         n_components=n_topics,
         random_state=random_seed,
         learning_method="batch",
+        doc_topic_prior=doc_topic_prior,
+        topic_word_prior=topic_word_prior,
     )
 
 
@@ -149,8 +156,15 @@ def score_run_coherence(
     n_topics: int,
     random_seed: int,
     top_n_words: int,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> tuple[float, float]:
-    lda = build_lda_model(n_topics, random_seed)
+    lda = build_lda_model(
+        n_topics,
+        random_seed,
+        doc_topic_prior=doc_topic_prior,
+        topic_word_prior=topic_word_prior,
+    )
     lda.fit(X)
 
     top_word_indices = extract_top_word_indices(lda, top_n_words=top_n_words)
@@ -198,6 +212,8 @@ def compute_coherence_profile(
     n_runs: int,
     base_random_seed: int = 42,
     top_n_words: int = 10,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> dict[int, CoherenceSummary]:
     prepared_texts = prepare_texts(texts)
     if n_runs <= 0:
@@ -219,6 +235,8 @@ def compute_coherence_profile(
                 n_topics=n_topics,
                 random_seed=run_seed,
                 top_n_words=top_n_words,
+                doc_topic_prior=doc_topic_prior,
+                topic_word_prior=topic_word_prior,
             )
             npmi_scores_by_topic[n_topics].append(run_npmi)
             c_v_scores_by_topic[n_topics].append(run_c_v)

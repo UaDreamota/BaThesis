@@ -60,6 +60,18 @@ parser.add_argument(
     type=int,
     help="Number of top words per topic to use for NPMI and c_v coherence.",
 )
+parser.add_argument(
+    "--doc-topic-prior",
+    default=None,
+    type=float,
+    help="LDA doc_topic_prior (alpha). If omitted, sklearn uses its default.",
+)
+parser.add_argument(
+    "--topic-word-prior",
+    default=None,
+    type=float,
+    help="LDA topic_word_prior (eta). If omitted, sklearn uses its default.",
+)
 
 BASE_DIR = SCRIPT_DIR.parent.parent
 OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches"
@@ -69,7 +81,7 @@ TOPIC_DISTRIBUTION_DIR = OUTPUT_DIR / "topic_distributions"
 STOPWORDS_DIR = Path(__file__).resolve().parent / "stopwords"
 DEFAULT_RANDOM_SEED = 42
 HELD_OUT_TEST_SIZE = 0.2
-TOPIC_COUNTS = [35, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
+TOPIC_COUNTS = [44]
 
 
 def load_stopwords(country_code: str) -> list[str]:
@@ -129,16 +141,33 @@ def transform_data(data: pd.DataFrame, country_code: str):
     return X
 
 
-def build_lda_model(n_topics: int, random_seed: int) -> LatentDirichletAllocation:
+def build_lda_model(
+    n_topics: int,
+    random_seed: int,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
+) -> LatentDirichletAllocation:
     return LatentDirichletAllocation(
         n_components=n_topics,
         random_state=random_seed,
         learning_method="batch",
+        doc_topic_prior=doc_topic_prior,
+        topic_word_prior=topic_word_prior,
     )
 
 
-def build_topic_distribution(X, n_topics: int) -> pd.DataFrame:
-    lda = build_lda_model(n_topics, DEFAULT_RANDOM_SEED)
+def build_topic_distribution(
+    X,
+    n_topics: int,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
+) -> pd.DataFrame:
+    lda = build_lda_model(
+        n_topics,
+        DEFAULT_RANDOM_SEED,
+        doc_topic_prior=doc_topic_prior,
+        topic_word_prior=topic_word_prior,
+    )
     return pd.DataFrame(lda.fit_transform(X))
 
 
@@ -159,8 +188,15 @@ def prepare_topic_distribution(
     aggregated_df: pd.DataFrame,
     X,
     best_n_topics: int,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> pd.DataFrame:
-    topic_distribution = build_topic_distribution(X, best_n_topics)
+    topic_distribution = build_topic_distribution(
+        X,
+        best_n_topics,
+        doc_topic_prior=doc_topic_prior,
+        topic_word_prior=topic_word_prior,
+    )
     topic_distribution.columns = [f"topic_{idx}" for idx in topic_distribution.columns]
 
     distribution_df = pd.concat(
@@ -175,6 +211,8 @@ def build_perplexity_profiles(
     country_code: str,
     top_party_count: int,
     n_runs: int = 0,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> dict[str, dict[int, PerplexitySummary]]:
     profiles: dict[str, dict[int, PerplexitySummary]] = {}
     stop_words = load_stopwords(country_code)
@@ -187,6 +225,8 @@ def build_perplexity_profiles(
             held_out_runs=n_runs,
             base_random_seed=DEFAULT_RANDOM_SEED,
             test_size=HELD_OUT_TEST_SIZE,
+            doc_topic_prior=doc_topic_prior,
+            topic_word_prior=topic_word_prior,
         )
 
     all_aggregated = aggregate_party_month(speeches_df)
@@ -209,6 +249,8 @@ def build_coherence_profiles(
     top_party_count: int,
     n_runs: int,
     coherence_top_n: int,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> dict[str, dict[int, CoherenceSummary]]:
     profiles: dict[str, dict[int, CoherenceSummary]] = {}
     stop_words = load_stopwords(country_code)
@@ -221,6 +263,8 @@ def build_coherence_profiles(
             n_runs=n_runs,
             base_random_seed=DEFAULT_RANDOM_SEED,
             top_n_words=coherence_top_n,
+            doc_topic_prior=doc_topic_prior,
+            topic_word_prior=topic_word_prior,
         )
 
     all_aggregated = aggregate_party_month(speeches_df)
@@ -475,6 +519,10 @@ def main(args: argparse.Namespace):
         raise ValueError("--coherence-top-n must be >= 2.")
     if args.coherence and args.n_runs <= 0:
         raise ValueError("--coherence requires --n-runs > 0.")
+    if args.doc_topic_prior is not None and args.doc_topic_prior <= 0:
+        raise ValueError("--doc-topic-prior must be > 0.")
+    if args.topic_word_prior is not None and args.topic_word_prior <= 0:
+        raise ValueError("--topic-word-prior must be > 0.")
 
     df = load_country(args.c)
     aggregated_df = aggregate_party_month(df)
@@ -486,6 +534,8 @@ def main(args: argparse.Namespace):
         args.c,
         top_party_count=args.top_parties,
         n_runs=args.n_runs,
+        doc_topic_prior=args.doc_topic_prior,
+        topic_word_prior=args.topic_word_prior,
     )
     perplexity_end = perf_counter()
     best_n_topics = choose_topic_count(perplexity_results, top_party_count=args.top_parties)
@@ -507,11 +557,19 @@ def main(args: argparse.Namespace):
             top_party_count=args.top_parties,
             n_runs=args.n_runs,
             coherence_top_n=args.coherence_top_n,
+            doc_topic_prior=args.doc_topic_prior,
+            topic_word_prior=args.topic_word_prior,
         )
         coherence_elapsed = perf_counter() - coherence_start
         coherence_csv_path = save_coherence_results(coherence_results, args.c)
 
-    distribution_df = prepare_topic_distribution(aggregated_df, X, best_n_topics)
+    distribution_df = prepare_topic_distribution(
+        aggregated_df,
+        X,
+        best_n_topics,
+        doc_topic_prior=args.doc_topic_prior,
+        topic_word_prior=args.topic_word_prior,
+    )
     save_topic_distribution_plot(distribution_df, best_n_topics, args.c)
     print(f"Time taken for perplexity evaluation: {perplexity_end - perplexity_start}")
     print(format_perplexity_results(perplexity_results))
@@ -524,6 +582,11 @@ def main(args: argparse.Namespace):
             f"Used coherence metrics over {args.n_runs} runs with top {args.coherence_top_n} words per topic."
         )
         print(f"Saved coherence results to: {coherence_csv_path}")
+    print(
+        "LDA priors: "
+        f"doc_topic_prior={args.doc_topic_prior if args.doc_topic_prior is not None else 'default'}, "
+        f"topic_word_prior={args.topic_word_prior if args.topic_word_prior is not None else 'default'}"
+    )
     print(f"Selected topic count from top {args.top_parties} parties: {best_n_topics}")
     print(f"Saved perplexity plot to: {perplexity_plot_path}")
     print(f"Saved topic distribution plots to: {TOPIC_DISTRIBUTION_DIR / args.c.upper()}")

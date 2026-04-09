@@ -19,11 +19,18 @@ def build_vectorizer(stop_words: list[str] | None) -> CountVectorizer:
     return CountVectorizer(stop_words=stop_words or None)
 
 
-def build_lda_model(n_topics: int, random_seed: int) -> LatentDirichletAllocation:
+def build_lda_model(
+    n_topics: int,
+    random_seed: int,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
+) -> LatentDirichletAllocation:
     return LatentDirichletAllocation(
         n_components=n_topics,
         random_state=random_seed,
         learning_method="batch",
+        doc_topic_prior=doc_topic_prior,
+        topic_word_prior=topic_word_prior,
     )
 
 
@@ -47,6 +54,8 @@ def compute_in_sample_perplexity(
     stop_words: list[str] | None,
     topic_counts: list[int],
     random_seed: int = 42,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> dict[int, PerplexitySummary]:
     prepared_texts = prepare_texts(texts)
     vectorizer = build_vectorizer(stop_words)
@@ -54,7 +63,12 @@ def compute_in_sample_perplexity(
 
     results: dict[int, PerplexitySummary] = {}
     for n_topics in topic_counts:
-        lda = build_lda_model(n_topics, random_seed)
+        lda = build_lda_model(
+            n_topics,
+            random_seed,
+            doc_topic_prior=doc_topic_prior,
+            topic_word_prior=topic_word_prior,
+        )
         lda.fit(X)
         results[n_topics] = summarize_perplexities([float(lda.perplexity(X))])
     return results
@@ -67,6 +81,8 @@ def compute_held_out_perplexity(
     n_runs: int,
     base_random_seed: int = 42,
     test_size: float = 0.2,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> dict[int, PerplexitySummary]:
     prepared_texts = prepare_texts(texts)
 
@@ -101,7 +117,12 @@ def compute_held_out_perplexity(
             )
 
         for n_topics in topic_counts:
-            lda = build_lda_model(n_topics, run_seed)
+            lda = build_lda_model(
+                n_topics,
+                run_seed,
+                doc_topic_prior=doc_topic_prior,
+                topic_word_prior=topic_word_prior,
+            )
             lda.fit(X_train)
             scores_by_topic[n_topics].append(float(lda.perplexity(X_test_eval)))
 
@@ -118,6 +139,8 @@ def compute_perplexity_profile(
     held_out_runs: int = 0,
     base_random_seed: int = 42,
     test_size: float = 0.2,
+    doc_topic_prior: float | None = None,
+    topic_word_prior: float | None = None,
 ) -> dict[int, PerplexitySummary]:
     if held_out_runs > 0:
         return compute_held_out_perplexity(
@@ -127,10 +150,14 @@ def compute_perplexity_profile(
             n_runs=held_out_runs,
             base_random_seed=base_random_seed,
             test_size=test_size,
+            doc_topic_prior=doc_topic_prior,
+            topic_word_prior=topic_word_prior,
         )
     return compute_in_sample_perplexity(
         texts=texts,
         stop_words=stop_words,
         topic_counts=topic_counts,
         random_seed=base_random_seed,
+        doc_topic_prior=doc_topic_prior,
+        topic_word_prior=topic_word_prior,
     )

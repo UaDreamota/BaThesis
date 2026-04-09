@@ -38,7 +38,7 @@ parser.add_argument(
 )
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = SCRIPT_DIR.parent.parent
 OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches" / "annotated_topic_distributions"
 
 
