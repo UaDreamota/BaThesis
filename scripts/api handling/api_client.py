@@ -8,7 +8,7 @@ from io import BytesIO
 from collections.abc import Sequence
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(REPO_ROOT / ".env")
 MANIFESTO_BASE = os.getenv("BASE_URL_MANIFESTO")
 MANIFESTO_KEY = os.getenv("MANIFESTO_PROJECT_API_KEY")

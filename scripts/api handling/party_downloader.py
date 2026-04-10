@@ -12,7 +12,7 @@ except ImportError:
     from api_client import ManifestoApiClient
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(REPO_ROOT / ".env")
 MPDS_KEY = "MPDS2025a"
 CORPUS_VER = "2025-1"
