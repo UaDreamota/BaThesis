@@ -107,7 +107,7 @@ MANIFESTO_ALIGNMENT_DIR = OUTPUT_DIR / "manifesto_alignment"
 STOPWORDS_DIR = Path(__file__).resolve().parent / "stopwords"
 DEFAULT_RANDOM_SEED = 42
 HELD_OUT_TEST_SIZE = 0.2
-TOPIC_COUNTS = [44]
+TOPIC_COUNTS = [18]
 
 
 def load_stopwords(country_code: str) -> list[str]:
@@ -1108,6 +1108,8 @@ def main(args: argparse.Namespace):
         )
     if manifesto_plot_paths:
         print(f"Saved manifesto alignment plots to: {MANIFESTO_ALIGNMENT_DIR / args.c.upper()}")
+    
+    distribution_df.to_csv("distribution_df.csv")
     return None
 
 
