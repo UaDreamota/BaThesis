@@ -1,0 +1,30 @@
+PLDA Manifesto Alignment OLS
+
+Input: /Users/anna/projs/BA/BaThesis/outputs/test_speeches/plda_regression_panel/CZ/CZ_plda_regression_panel_model.csv, /Users/anna/projs/BA/BaThesis/outputs/test_speeches/plda_regression_panel/EE/EE_plda_regression_panel_model.csv, /Users/anna/projs/BA/BaThesis/outputs/test_speeches/plda_regression_panel/LV/LV_plda_regression_panel_model.csv, /Users/anna/projs/BA/BaThesis/outputs/test_speeches/plda_regression_panel/PL/PL_plda_regression_panel_model.csv
+Outcome: alignment_score
+Model label: log_word_count
+Predictors: electoral_cycle_progress, party_in_government, party_prime_minister, party_seat_share, log1p_speech_words, cabinet_is_coalition, cabinet_has_absolute_majority, cabinet_caretaker
+Fixed effects: speech_party, country_code
+Standard errors: robust
+
+Observations: 1990
+Parameters: 33
+Residual df: 1957
+R-squared: 0.777047
+Adjusted R-squared: 0.773401
+RMSE: 0.031865
+
+Dropped rank-redundant terms:
+FE_country_code_EE, FE_country_code_LV, FE_country_code_PL
+
+Non-fixed-effect coefficients:
+                         term  estimate  std_error    t_stat       p_value  ci_95_low  ci_95_high
+                        const -0.058646   0.013676 -4.288250  1.888501e-05  -0.085466   -0.031825
+     electoral_cycle_progress  0.010191   0.002788  3.655178  2.637793e-04   0.004723    0.015658
+          party_in_government  0.015330   0.002593  5.913124  3.951433e-09   0.010246    0.020415
+         party_prime_minister -0.008059   0.003726 -2.162754  3.068086e-02  -0.015367   -0.000751
+             party_seat_share -0.021085   0.023170 -0.910015  3.629264e-01  -0.066526    0.024356
+           log1p_speech_words  0.031246   0.000855 36.549011 2.146371e-223   0.029569    0.032922
+         cabinet_is_coalition  0.021849   0.007954  2.746968  6.070020e-03   0.006250    0.037447
+cabinet_has_absolute_majority  0.006733   0.002815  2.391670  1.686580e-02   0.001212    0.012254
+            cabinet_caretaker  0.026033   0.007961  3.270052  1.093940e-03   0.010420    0.041646

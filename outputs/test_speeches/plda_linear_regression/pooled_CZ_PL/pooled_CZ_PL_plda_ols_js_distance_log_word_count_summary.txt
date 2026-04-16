@@ -1,0 +1,30 @@
+PLDA Manifesto Alignment OLS
+
+Input: /Users/anna/projs/BA/BaThesis/outputs/test_speeches/plda_regression_panel/CZ/CZ_plda_regression_panel_model.csv, /Users/anna/projs/BA/BaThesis/outputs/test_speeches/plda_regression_panel/PL/PL_plda_regression_panel_model.csv
+Outcome: js_distance
+Model label: log_word_count
+Predictors: electoral_cycle_progress, party_in_government, party_prime_minister, party_seat_share, log1p_speech_words, cabinet_is_coalition, cabinet_has_absolute_majority, cabinet_caretaker
+Fixed effects: speech_party, country_code
+Standard errors: robust
+
+Observations: 1149
+Parameters: 22
+Residual df: 1127
+R-squared: 0.770167
+Adjusted R-squared: 0.765884
+RMSE: 0.031828
+
+Dropped rank-redundant terms:
+FE_speech_party_Teraz, FE_country_code_PL
+
+Non-fixed-effect coefficients:
+                         term  estimate  std_error     t_stat       p_value  ci_95_low  ci_95_high
+                        const  1.178890   0.009842 119.786511  0.000000e+00   1.159580    1.198200
+     electoral_cycle_progress -0.015506   0.003950  -3.925841  9.166733e-05  -0.023256   -0.007756
+          party_in_government -0.019947   0.005329  -3.742851  1.911225e-04  -0.030404   -0.009491
+         party_prime_minister  0.014137   0.008305   1.702260  8.898247e-02  -0.002158    0.030433
+             party_seat_share  0.087030   0.042599   2.042982  4.128644e-02   0.003447    0.170613
+           log1p_speech_words -0.038406   0.001165 -32.972941 1.810228e-167  -0.040691   -0.036121
+         cabinet_is_coalition -0.084285   0.011810  -7.136926  1.705734e-12  -0.107456   -0.061113
+cabinet_has_absolute_majority -0.007736   0.003185  -2.428894  1.530053e-02  -0.013986   -0.001487
+            cabinet_caretaker -0.093677   0.012773  -7.334197  4.252427e-13  -0.118738   -0.068617

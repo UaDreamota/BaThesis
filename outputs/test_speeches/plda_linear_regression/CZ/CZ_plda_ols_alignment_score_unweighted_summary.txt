@@ -1,0 +1,27 @@
+PLDA Manifesto Alignment OLS
+
+Input: outputs/test_speeches/plda_regression_panel/CZ/CZ_plda_regression_panel_model.csv
+Outcome: alignment_score
+Model label: unweighted
+Predictors: electoral_cycle_progress, party_in_government, party_prime_minister, party_seat_share, log1p_speech_words, cabinet_is_coalition, cabinet_has_absolute_majority, cabinet_caretaker
+Fixed effects: speech_party
+Standard errors: robust
+
+Observations: 799
+Parameters: 18
+Residual df: 781
+R-squared: 0.726172
+Adjusted R-squared: 0.720212
+RMSE: 0.031345
+
+Non-fixed-effect coefficients:
+                         term  estimate  std_error    t_stat       p_value  ci_95_low  ci_95_high
+                        const -0.056402   0.011611 -4.857545  1.436264e-06  -0.079194   -0.033609
+     electoral_cycle_progress  0.008485   0.004887  1.736162  8.292962e-02  -0.001109    0.018079
+          party_in_government  0.020440   0.005102  4.006616  6.748576e-05   0.010426    0.030455
+         party_prime_minister -0.014050   0.008637 -1.626662  1.042124e-01  -0.031005    0.002905
+             party_seat_share -0.101784   0.045463 -2.238815  2.544886e-02  -0.191029   -0.012539
+           log1p_speech_words  0.037739   0.001225 30.798310 5.677868e-137   0.035334    0.040145
+         cabinet_is_coalition -0.027342   0.006221 -4.395111  1.260240e-05  -0.039553   -0.015130
+cabinet_has_absolute_majority  0.001153   0.003117  0.369986  7.114932e-01  -0.004966    0.007273
+            cabinet_caretaker -0.029060   0.006240 -4.656857  3.772644e-06  -0.041310   -0.016810

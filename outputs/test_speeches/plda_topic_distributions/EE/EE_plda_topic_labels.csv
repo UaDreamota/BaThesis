@@ -1,0 +1,93 @@
+topic_column,topic_label,topics_per_label,latent_topics_excluded
+topic_0,Other 1,4,1
+topic_1,Other 2,4,1
+topic_2,Other 3,4,1
+topic_3,Other 4,4,1
+topic_4,Education 1,4,1
+topic_5,Education 2,4,1
+topic_6,Education 3,4,1
+topic_7,Education 4,4,1
+topic_8,Macroeconomics 1,4,1
+topic_9,Macroeconomics 2,4,1
+topic_10,Macroeconomics 3,4,1
+topic_11,Macroeconomics 4,4,1
+topic_12,Labor 1,4,1
+topic_13,Labor 2,4,1
+topic_14,Labor 3,4,1
+topic_15,Labor 4,4,1
+topic_16,Social Welfare 1,4,1
+topic_17,Social Welfare 2,4,1
+topic_18,Social Welfare 3,4,1
+topic_19,Social Welfare 4,4,1
+topic_20,Government Operations 1,4,1
+topic_21,Government Operations 2,4,1
+topic_22,Government Operations 3,4,1
+topic_23,Government Operations 4,4,1
+topic_24,Law and Crime 1,4,1
+topic_25,Law and Crime 2,4,1
+topic_26,Law and Crime 3,4,1
+topic_27,Law and Crime 4,4,1
+topic_28,Energy 1,4,1
+topic_29,Energy 2,4,1
+topic_30,Energy 3,4,1
+topic_31,Energy 4,4,1
+topic_32,Domestic Commerce 1,4,1
+topic_33,Domestic Commerce 2,4,1
+topic_34,Domestic Commerce 3,4,1
+topic_35,Domestic Commerce 4,4,1
+topic_36,Technology 1,4,1
+topic_37,Technology 2,4,1
+topic_38,Technology 3,4,1
+topic_39,Technology 4,4,1
+topic_40,Transportation 1,4,1
+topic_41,Transportation 2,4,1
+topic_42,Transportation 3,4,1
+topic_43,Transportation 4,4,1
+topic_44,Agriculture 1,4,1
+topic_45,Agriculture 2,4,1
+topic_46,Agriculture 3,4,1
+topic_47,Agriculture 4,4,1
+topic_48,Housing 1,4,1
+topic_49,Housing 2,4,1
+topic_50,Housing 3,4,1
+topic_51,Housing 4,4,1
+topic_52,Mix 1,4,1
+topic_53,Mix 2,4,1
+topic_54,Mix 3,4,1
+topic_55,Mix 4,4,1
+topic_56,Defense 1,4,1
+topic_57,Defense 2,4,1
+topic_58,Defense 3,4,1
+topic_59,Defense 4,4,1
+topic_60,Civil Rights 1,4,1
+topic_61,Civil Rights 2,4,1
+topic_62,Civil Rights 3,4,1
+topic_63,Civil Rights 4,4,1
+topic_64,Public Lands 1,4,1
+topic_65,Public Lands 2,4,1
+topic_66,Public Lands 3,4,1
+topic_67,Public Lands 4,4,1
+topic_68,Culture 1,4,1
+topic_69,Culture 2,4,1
+topic_70,Culture 3,4,1
+topic_71,Culture 4,4,1
+topic_72,International Affairs 1,4,1
+topic_73,International Affairs 2,4,1
+topic_74,International Affairs 3,4,1
+topic_75,International Affairs 4,4,1
+topic_76,Environment 1,4,1
+topic_77,Environment 2,4,1
+topic_78,Environment 3,4,1
+topic_79,Environment 4,4,1
+topic_80,Foreign Trade 1,4,1
+topic_81,Foreign Trade 2,4,1
+topic_82,Foreign Trade 3,4,1
+topic_83,Foreign Trade 4,4,1
+topic_84,Health 1,4,1
+topic_85,Health 2,4,1
+topic_86,Health 3,4,1
+topic_87,Health 4,4,1
+topic_88,Immigration 1,4,1
+topic_89,Immigration 2,4,1
+topic_90,Immigration 3,4,1
+topic_91,Immigration 4,4,1

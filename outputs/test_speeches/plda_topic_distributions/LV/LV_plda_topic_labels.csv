@@ -1,0 +1,47 @@
+topic_column,topic_label,topics_per_label,latent_topics_excluded
+topic_0,Government Operations 1,2,1
+topic_1,Government Operations 2,2,1
+topic_2,Other 1,2,1
+topic_3,Other 2,2,1
+topic_4,Mix 1,2,1
+topic_5,Mix 2,2,1
+topic_6,Macroeconomics 1,2,1
+topic_7,Macroeconomics 2,2,1
+topic_8,Law and Crime 1,2,1
+topic_9,Law and Crime 2,2,1
+topic_10,Health 1,2,1
+topic_11,Health 2,2,1
+topic_12,Social Welfare 1,2,1
+topic_13,Social Welfare 2,2,1
+topic_14,Education 1,2,1
+topic_15,Education 2,2,1
+topic_16,Defense 1,2,1
+topic_17,Defense 2,2,1
+topic_18,Housing 1,2,1
+topic_19,Housing 2,2,1
+topic_20,Civil Rights 1,2,1
+topic_21,Civil Rights 2,2,1
+topic_22,Culture 1,2,1
+topic_23,Culture 2,2,1
+topic_24,Agriculture 1,2,1
+topic_25,Agriculture 2,2,1
+topic_26,International Affairs 1,2,1
+topic_27,International Affairs 2,2,1
+topic_28,Domestic Commerce 1,2,1
+topic_29,Domestic Commerce 2,2,1
+topic_30,Public Lands 1,2,1
+topic_31,Public Lands 2,2,1
+topic_32,Transportation 1,2,1
+topic_33,Transportation 2,2,1
+topic_34,Technology 1,2,1
+topic_35,Technology 2,2,1
+topic_36,Environment 1,2,1
+topic_37,Environment 2,2,1
+topic_38,Energy 1,2,1
+topic_39,Energy 2,2,1
+topic_40,Labor 1,2,1
+topic_41,Labor 2,2,1
+topic_42,Foreign Trade 1,2,1
+topic_43,Foreign Trade 2,2,1
+topic_44,Immigration 1,2,1
+topic_45,Immigration 2,2,1

@@ -1,0 +1,26 @@
+PLDA Manifesto Alignment OLS
+
+Input: /Users/anna/projs/BA/BaThesis/outputs/test_speeches/plda_regression_panel/PL/PL_plda_regression_panel_model.csv
+Outcome: alignment_score
+Model label: log_word_count
+Predictors: electoral_cycle_progress, party_in_government, party_prime_minister, party_seat_share, log1p_speech_words, cabinet_is_coalition, cabinet_has_absolute_majority, cabinet_caretaker
+Fixed effects: speech_party
+Standard errors: robust
+
+Observations: 350
+Parameters: 8
+Residual df: 342
+R-squared: 0.877654
+Adjusted R-squared: 0.875150
+RMSE: 0.025351
+
+Dropped rank-redundant terms:
+party_prime_minister, cabinet_is_coalition, cabinet_has_absolute_majority, cabinet_caretaker, FE_speech_party_PiS
+
+Non-fixed-effect coefficients:
+                    term  estimate  std_error    t_stat      p_value  ci_95_low  ci_95_high
+                   const -0.063726   0.034097 -1.868962 6.248266e-02  -0.130792    0.003340
+electoral_cycle_progress  0.030285   0.005348  5.662985 3.155907e-08   0.019766    0.040804
+     party_in_government  0.130573   0.014633  8.923087 2.805227e-17   0.101791    0.159355
+        party_seat_share -0.288199   0.077157 -3.735219 2.196701e-04  -0.439961   -0.136436
+      log1p_speech_words  0.033900   0.002352 14.415831 3.846737e-37   0.029275    0.038525

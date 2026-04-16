@@ -1,0 +1,93 @@
+topic_column,topic_label,topics_per_label,latent_topics_excluded
+topic_0,Other 1,4,1
+topic_1,Other 2,4,1
+topic_2,Other 3,4,1
+topic_3,Other 4,4,1
+topic_4,Mix 1,4,1
+topic_5,Mix 2,4,1
+topic_6,Mix 3,4,1
+topic_7,Mix 4,4,1
+topic_8,Civil Rights 1,4,1
+topic_9,Civil Rights 2,4,1
+topic_10,Civil Rights 3,4,1
+topic_11,Civil Rights 4,4,1
+topic_12,Government Operations 1,4,1
+topic_13,Government Operations 2,4,1
+topic_14,Government Operations 3,4,1
+topic_15,Government Operations 4,4,1
+topic_16,Culture 1,4,1
+topic_17,Culture 2,4,1
+topic_18,Culture 3,4,1
+topic_19,Culture 4,4,1
+topic_20,Technology 1,4,1
+topic_21,Technology 2,4,1
+topic_22,Technology 3,4,1
+topic_23,Technology 4,4,1
+topic_24,Macroeconomics 1,4,1
+topic_25,Macroeconomics 2,4,1
+topic_26,Macroeconomics 3,4,1
+topic_27,Macroeconomics 4,4,1
+topic_28,Education 1,4,1
+topic_29,Education 2,4,1
+topic_30,Education 3,4,1
+topic_31,Education 4,4,1
+topic_32,Domestic Commerce 1,4,1
+topic_33,Domestic Commerce 2,4,1
+topic_34,Domestic Commerce 3,4,1
+topic_35,Domestic Commerce 4,4,1
+topic_36,Health 1,4,1
+topic_37,Health 2,4,1
+topic_38,Health 3,4,1
+topic_39,Health 4,4,1
+topic_40,Transportation 1,4,1
+topic_41,Transportation 2,4,1
+topic_42,Transportation 3,4,1
+topic_43,Transportation 4,4,1
+topic_44,Defense 1,4,1
+topic_45,Defense 2,4,1
+topic_46,Defense 3,4,1
+topic_47,Defense 4,4,1
+topic_48,Social Welfare 1,4,1
+topic_49,Social Welfare 2,4,1
+topic_50,Social Welfare 3,4,1
+topic_51,Social Welfare 4,4,1
+topic_52,Agriculture 1,4,1
+topic_53,Agriculture 2,4,1
+topic_54,Agriculture 3,4,1
+topic_55,Agriculture 4,4,1
+topic_56,Immigration 1,4,1
+topic_57,Immigration 2,4,1
+topic_58,Immigration 3,4,1
+topic_59,Immigration 4,4,1
+topic_60,International Affairs 1,4,1
+topic_61,International Affairs 2,4,1
+topic_62,International Affairs 3,4,1
+topic_63,International Affairs 4,4,1
+topic_64,Environment 1,4,1
+topic_65,Environment 2,4,1
+topic_66,Environment 3,4,1
+topic_67,Environment 4,4,1
+topic_68,Energy 1,4,1
+topic_69,Energy 2,4,1
+topic_70,Energy 3,4,1
+topic_71,Energy 4,4,1
+topic_72,Labor 1,4,1
+topic_73,Labor 2,4,1
+topic_74,Labor 3,4,1
+topic_75,Labor 4,4,1
+topic_76,Law and Crime 1,4,1
+topic_77,Law and Crime 2,4,1
+topic_78,Law and Crime 3,4,1
+topic_79,Law and Crime 4,4,1
+topic_80,Housing 1,4,1
+topic_81,Housing 2,4,1
+topic_82,Housing 3,4,1
+topic_83,Housing 4,4,1
+topic_84,Foreign Trade 1,4,1
+topic_85,Foreign Trade 2,4,1
+topic_86,Foreign Trade 3,4,1
+topic_87,Foreign Trade 4,4,1
+topic_88,Public Lands 1,4,1
+topic_89,Public Lands 2,4,1
+topic_90,Public Lands 3,4,1
+topic_91,Public Lands 4,4,1
