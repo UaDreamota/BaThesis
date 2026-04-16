@@ -102,6 +102,13 @@ def sanitize_filename(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]+", "_", str(value)).strip("_")
 
 
+def country_suffixed_path(path: Path, country_code: str) -> Path:
+    suffix = f"_{country_code.upper()}"
+    if path.stem.upper().endswith(suffix):
+        return path
+    return path.with_name(f"{path.stem}{suffix}{path.suffix}")
+
+
 def infer_country(grid_log_path: Path) -> str:
     if not grid_log_path.exists():
         raise FileNotFoundError(
@@ -132,6 +139,27 @@ def infer_country(grid_log_path: Path) -> str:
             "Pass --c explicitly."
         )
     return str(countries[0]).upper()
+
+
+def resolve_country_and_inputs(args: argparse.Namespace) -> tuple[str, Path, Path]:
+    if args.c and args.c.strip():
+        country_code = args.c.strip().upper()
+        return (
+            country_code,
+            country_suffixed_path(args.distribution_input, country_code),
+            country_suffixed_path(args.grid_log_input, country_code),
+        )
+
+    country_code = infer_country(args.grid_log_input)
+    suffixed_grid_log = country_suffixed_path(args.grid_log_input, country_code)
+    grid_log_input = suffixed_grid_log if suffixed_grid_log.exists() else args.grid_log_input
+    suffixed_distribution = country_suffixed_path(args.distribution_input, country_code)
+    distribution_input = (
+        suffixed_distribution
+        if suffixed_distribution.exists()
+        else args.distribution_input
+    )
+    return country_code, distribution_input, grid_log_input
 
 
 def infer_latent_topics(grid_log_path: Path) -> int:
@@ -311,10 +339,21 @@ def load_plda_distribution(path: Path) -> pd.DataFrame:
     return data[columns].copy()
 
 
+def simple_tokenizer(raw_text: str) -> list[str]:
+    raw_text = raw_text.lower()
+    return re.findall(r"\b\w+\b", raw_text, flags=re.UNICODE)
+
+
+def drop_empty_token_rows(data: pd.DataFrame) -> pd.DataFrame:
+    token_mask = data["text"].map(lambda text: len(simple_tokenizer(str(text))) > 0)
+    return data.loc[token_mask].reset_index(drop=True)
+
+
 def load_plda_metadata(country_code: str) -> pd.DataFrame:
     data = load_country(country_code)
     data = merge_topics(data)
     data = data.dropna(subset=["topic_label"]).copy()
+    data = drop_empty_token_rows(data)
     return data[["party", "month", "month_start", "topic_label", "broad_topic"]].reset_index(drop=True)
 
 
@@ -528,18 +567,18 @@ def save_plot_set(
 
 
 def main(args: argparse.Namespace) -> None:
-    country_code = args.c.upper() if args.c else infer_country(args.grid_log_input)
+    country_code, distribution_input, grid_log_input = resolve_country_and_inputs(args)
     latent_topics = (
         args.latent_topics
         if args.latent_topics is not None
-        else infer_latent_topics(args.grid_log_input)
+        else infer_latent_topics(grid_log_input)
     )
     topics_per_label = (
         args.topics_per_label
         if args.topics_per_label is not None
-        else infer_topics_per_label(args.grid_log_input)
+        else infer_topics_per_label(grid_log_input)
     )
-    topic_df = load_plda_distribution(args.distribution_input)
+    topic_df = load_plda_distribution(distribution_input)
     all_topic_cols = topic_columns(topic_df)
     visible_topic_cols = visible_topic_columns(all_topic_cols, latent_topics)
     metadata = load_plda_metadata(country_code)

@@ -17,10 +17,10 @@ if str(PACKAGE_ROOT) not in sys.path:
 from path_config import get_parlam_csv_path, get_parlam_data_dir
 
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = Path(__file__).resolve().parents[2]
 PARLA_DATA_DIR = get_parlam_data_dir()
 MPDS_PATH = BASE_DIR / "data" / "MPDataset_MPDS2025a.csv"
-OUTPUT_DIR = Path(__file__).resolve().parent / "party_mappings"
+OUTPUT_DIR = BASE_DIR / "scripts" / "party_mappings"
 
 UKRAINE_MAPPING_PATH = (
     Path(__file__).resolve().parent / "Ukraine_party_mapping_speech_to_mpds.csv"
@@ -153,6 +153,44 @@ EE_MANUAL_MPDS_MAP: dict[str, dict[str, object]] = {
     "VABA": {"party_id": 83440, "preferred_partyname": "Free Party"},
 }
 
+PL_MANUAL_MPDS_MAP: dict[str, dict[str, object]] = {
+    "KO": {
+        "party_id": 92435,
+        "preferred_partyname": "Civic Platform",
+        "note": "Civic Coalition speech label aligned with the Civic Platform MPDS manifesto series.",
+    },
+    "KP-PSL": {
+        "party_id": 92050,
+        "preferred_partyname": "Polish Coalition",
+        "note": "Parliamentary club label aligned with the Polish Coalition / PSL MPDS manifesto series.",
+    },
+    "Konfederacja": {
+        "party_id": 92070,
+        "preferred_partyname": "Confederation Liberty and Independence",
+    },
+    "Kukiz15": {
+        "party_id": 92720,
+        "preferred_partyname": "Kukiz'15",
+    },
+    "Lewica": {
+        "party_id": 92022,
+        "preferred_partyname": "The Left",
+        "note": "Speech label aligned with the post-2019 The Left MPDS manifesto series.",
+    },
+    "PiS": {"party_id": 92436, "preferred_partyname": "Law and Justice"},
+    "PrzywrócićPrawo": {
+        "party_id": 92720,
+        "preferred_partyname": "Kukiz'15",
+        "note": "Parliamentary circle formed by MPs elected from Kukiz'15 lists; no separate MPDS manifesto row.",
+    },
+    "Teraz": {
+        "party_id": 92450,
+        "preferred_partyname": "Modern",
+        "note": "Parliamentary circle split from Modern; no separate MPDS manifesto row.",
+    },
+    "UPR": {"party_id": 92432, "preferred_partyname": "Union of Real Politics"},
+}
+
 LV_MANUAL_MPDS_MAP: dict[str, dict[str, object]] = {
     "AP": {"party_id": 87042, "preferred_partyname": "Development/For!"},
     "JV": {"party_id": 87063, "preferred_partyname": "New Unity"},
@@ -175,6 +213,182 @@ LV_MANUAL_MPDS_MAP: dict[str, dict[str, object]] = {
         "note": "Speech label uses the Latvian party name Vienotiba / Unity.",
     },
     "ZZS": {"party_id": 87110, "preferred_partyname": "Greens' and Farmers’ Union"},
+}
+
+HU_MANUAL_MPDS_MAP: dict[str, dict[str, object]] = {
+    "DK": {"party_id": 86221, "preferred_partyname": "Democratic Coalition"},
+    "DK-frakció": {
+        "party_id": 86221,
+        "preferred_partyname": "Democratic Coalition",
+        "note": "Faction label mapped to Democratic Coalition.",
+    },
+    "EGYÜTT": {
+        "party_id": 86340,
+        "preferred_partyname": "Together 2014 -Dialogue for Hungary Electoral Alliance",
+    },
+    "Fidesz": {
+        "party_id": 86421,
+        "preferred_partyname": "Federation of Young Democrats",
+    },
+    "Fidesz-frakció": {
+        "party_id": 86421,
+        "preferred_partyname": "Federation of Young Democrats",
+        "note": "Faction label mapped to Fidesz.",
+    },
+    "Huxit": {
+        "party_id": 86711,
+        "preferred_partyname": "Our Homeland Movement",
+        "note": "Volner/Huxit splinter label has no separate MPDS row; aligned with the nearest Our Homeland MPDS series.",
+    },
+    "JOBBIK": {"party_id": 86710, "preferred_partyname": "Movement for a Better Hungary"},
+    "JOBBIK-frakció": {
+        "party_id": 86710,
+        "preferred_partyname": "Movement for a Better Hungary",
+        "note": "Faction label mapped to Jobbik.",
+    },
+    "KDNP": {
+        "party_id": 86421,
+        "preferred_partyname": "Alliance of Federation of Young Democrats - Christian Democratic People's Party",
+        "note": "Modern KDNP speeches are aligned with the Fidesz-KDNP joint manifesto series.",
+    },
+    "LMP": {"party_id": 86110, "preferred_partyname": "Politics Can Be Different"},
+    "LMP-frakció": {
+        "party_id": 86110,
+        "preferred_partyname": "Politics Can Be Different",
+        "note": "Faction label mapped to LMP.",
+    },
+    "MLP": {
+        "party_id": 86221,
+        "preferred_partyname": "Democratic Coalition",
+        "note": "Hungarian Liberal Party has no standalone MPDS row; aligned with DK as its closest later parliamentary affiliation.",
+    },
+    "Mi Hazánk": {"party_id": 86711, "preferred_partyname": "Our Homeland Movement"},
+    "Momentum": {
+        "party_id": 86001,
+        "preferred_partyname": "United for Hungary",
+        "note": "Momentum has no standalone MPDS row; post-2022 speech label aligned with the United for Hungary coalition manifesto.",
+    },
+    "Momentum-frakció": {
+        "party_id": 86001,
+        "preferred_partyname": "United for Hungary",
+        "note": "Momentum faction has no standalone MPDS row; aligned with the United for Hungary coalition manifesto.",
+    },
+    "MSZP": {"party_id": 86220, "preferred_partyname": "Hungarian Socialist Party"},
+    "MSZP-frakció": {
+        "party_id": 86220,
+        "preferred_partyname": "Hungarian Socialist Party",
+        "note": "Faction label mapped to Hungarian Socialist Party.",
+    },
+    "Párbeszéd": {"party_id": 86111, "preferred_partyname": "Dialogue for Hungary"},
+    "Párbeszéd-frakció": {
+        "party_id": 86111,
+        "preferred_partyname": "Dialogue for Hungary",
+        "note": "Faction label mapped to Dialogue for Hungary.",
+    },
+    "Szolidaritás": {
+        "party_id": 86340,
+        "preferred_partyname": "Together 2014 -Dialogue for Hungary Electoral Alliance",
+        "note": "Hungarian Solidarity Movement has no standalone MPDS row; aligned with the Together 2014 alliance series.",
+    },
+    "Volner": {
+        "party_id": 86711,
+        "preferred_partyname": "Our Homeland Movement",
+        "note": "Volner Party has no standalone MPDS row; aligned with the nearest Our Homeland MPDS series.",
+    },
+    "ÚK": {
+        "party_id": 86110,
+        "preferred_partyname": "Politics Can Be Different",
+        "note": "Új Kezdet has no standalone MPDS row; aligned with the LMP electoral-cooperation manifesto series.",
+    },
+}
+
+HU_NON_PARTY_LABELS: dict[str, dict[str, str]] = {
+    "MNOÖ": {
+        "label_type": "minority_list",
+        "note": "Hungarian German national minority list, not treated as an MPDS manifesto party.",
+    },
+}
+
+SI_MANUAL_MPDS_MAP: dict[str, dict[str, object]] = {
+    "DL": {
+        "party_id": 97450,
+        "preferred_partyname": "Gregor Virant's Civic List",
+        "note": "Speech label DL aligned with the Civic List / Gregor Virant MPDS manifesto series.",
+    },
+    "DLGV": {
+        "party_id": 97450,
+        "preferred_partyname": "Gregor Virant's Civic List",
+    },
+    "DeSUS": {
+        "party_id": 97951,
+        "preferred_partyname": "Democratic Party of Pensioners of Slovenia",
+    },
+    "Konkretno": {
+        "party_id": 97461,
+        "preferred_partyname": "Modern Centre Party",
+        "note": "Konkretno speech label aligned with the SMC / Modern Centre Party MPDS manifesto series.",
+    },
+    "LDS": {"party_id": 97421, "preferred_partyname": "Liberal Democracy of Slovenia"},
+    "LMŠ": {"party_id": 97341, "preferred_partyname": "List of Marjan Šarec"},
+    "Levica": {
+        "party_id": 97230,
+        "preferred_partyname": "The Left",
+    },
+    "Lipa": {
+        "party_id": 97710,
+        "preferred_partyname": "Slovenian National Party",
+        "note": "Lipa was a splinter parliamentary label without a separate MPDS manifesto row; aligned with SNS.",
+    },
+    "NSi": {
+        "party_id": 97522,
+        "preferred_partyname": "New Slovenian Christian People’s Party",
+    },
+    "PS": {
+        "party_id": 97340,
+        "preferred_partyname": "Zoran Janković's List - Positive Slovenia",
+    },
+    "SAB": {
+        "party_id": 97460,
+        "preferred_partyname": "Party of Alenka Bratušek",
+    },
+    "SD": {"party_id": 97322, "preferred_partyname": "Social Democratic Party"},
+    "SDS": {"party_id": 97330, "preferred_partyname": "Slovenian Democratic Party"},
+    "SLS": {"party_id": 97521, "preferred_partyname": "Slovenian People's Party"},
+    "SLS+SKD": {
+        "party_id": 97521,
+        "preferred_partyname": "Slovenian People's Party",
+        "note": "Joint SLS+SKD parliamentary label aligned with the SLS MPDS manifesto series.",
+    },
+    "SMC": {
+        "party_id": 97461,
+        "preferred_partyname": "Modern Centre Party",
+    },
+    "SMS": {"party_id": 97952, "preferred_partyname": "Party of Slovenian Youth"},
+    "SNS": {"party_id": 97710, "preferred_partyname": "Slovenian National Party"},
+    "ZL": {"party_id": 97020, "preferred_partyname": "United Left"},
+    "ZLSD": {
+        "party_id": 97321,
+        "preferred_partyname": "Associated List of Social Democrats",
+    },
+    "ZaAB": {
+        "party_id": 97460,
+        "preferred_partyname": "Alliance of Alenka Bratušek",
+    },
+    "Zares": {
+        "party_id": 97440,
+        "preferred_partyname": "For Real",
+    },
+}
+
+SI_NON_PARTY_LABELS: dict[str, dict[str, str]] = {
+    "NP": {
+        "label_type": "unaffiliated",
+        "note": "Unaffiliated deputies label, not treated as an MPDS manifesto party.",
+    },
+    "NeP": {
+        "label_type": "unaffiliated",
+        "note": "Unaffiliated deputies label, not treated as an MPDS manifesto party.",
+    },
 }
 
 CZ_NON_PARTY_LABELS: dict[str, dict[str, str]] = {
@@ -219,6 +433,12 @@ COUNTRY_CONFIGS: dict[str, CountryConfig] = {
         parla_path=get_parlam_csv_path("EE"),
         manual_map=EE_MANUAL_MPDS_MAP,
     ),
+    "PL": CountryConfig(
+        code="PL",
+        manifesto_country="Poland",
+        parla_path=get_parlam_csv_path("PL"),
+        manual_map=PL_MANUAL_MPDS_MAP,
+    ),
     "LV": CountryConfig(
         code="LV",
         manifesto_country="Latvia",
@@ -235,6 +455,20 @@ COUNTRY_CONFIGS: dict[str, CountryConfig] = {
         code="LT",
         manifesto_country="Lithuania",
         parla_path=get_parlam_csv_path("LT"),
+    ),
+    "HU": CountryConfig(
+        code="HU",
+        manifesto_country="Hungary",
+        parla_path=get_parlam_csv_path("HU"),
+        manual_map=HU_MANUAL_MPDS_MAP,
+        non_party_labels=HU_NON_PARTY_LABELS,
+    ),
+    "SI": CountryConfig(
+        code="SI",
+        manifesto_country="Slovenia",
+        parla_path=get_parlam_csv_path("SI"),
+        manual_map=SI_MANUAL_MPDS_MAP,
+        non_party_labels=SI_NON_PARTY_LABELS,
     ),
 }
 
@@ -371,6 +605,9 @@ def label_type(label: str, config: CountryConfig) -> str:
             return "group"
         if lowered.startswith("б"):
             return "bloc"
+
+    if config.code == "HU" and label.endswith("-frakció"):
+        return "faction"
 
     return "party"
 
@@ -569,7 +806,7 @@ def parse_args() -> argparse.Namespace:
         "--country",
         nargs="+",
         default=None,
-        help="Country codes to process, for example: UA GB EE LV CZ LT",
+        help="Country codes to process, for example: UA GB EE LV CZ LT HU PL SI",
     )
     return parser.parse_args()
 

@@ -10,10 +10,10 @@ import pandas as pd
 from dotenv import load_dotenv
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-SCRIPTS_DIR = SCRIPT_DIR.parent
-REPO_ROOT = SCRIPTS_DIR.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_DIR = REPO_ROOT / "scripts"
 MPDS_PATH = REPO_ROOT / "data" / "MPDataset_MPDS2025a.csv"
-PARTY_MAPPING_DIR = SCRIPTS_DIR / "party_mappings"
+DEFAULT_PARTY_MAPPING_DIR = SCRIPTS_DIR / "party_mappings"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs" / "manifesto_quasi_sentences"
 
 if str(SCRIPT_DIR) not in sys.path:
@@ -33,8 +33,11 @@ COUNTRY_NAME_BY_CODE: dict[str, str] = {
     "CZ": "Czech Republic",
     "EE": "Estonia",
     "GB": "United Kingdom",
+    "HU": "Hungary",
     "LV": "Latvia",
     "LT": "Lithuania",
+    "PL": "Poland",
+    "SI": "Slovenia",
     "UA": "Ukraine",
 }
 
@@ -50,13 +53,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--country",
         required=True,
         type=str,
-        help="Country code, for example: CZ GB EE LV UA",
+        help="Country code, for example: CZ GB EE LV LT UA HU",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=DEFAULT_OUTPUT_DIR,
         help="Base directory for output CSV files.",
+    )
+    parser.add_argument(
+        "--party-mapping-dir",
+        type=Path,
+        default=DEFAULT_PARTY_MAPPING_DIR,
+        help=(
+            "Directory containing <COUNTRY>_party_mapping_speech_to_mpds.csv files. "
+            "Defaults to scripts/party_mappings under the repository root."
+        ),
     )
     parser.add_argument(
         "--translation",
@@ -114,8 +126,8 @@ def load_speech_rows(country_code: str) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-def load_party_mapping(country_code: str) -> pd.DataFrame:
-    path = PARTY_MAPPING_DIR / f"{country_code.upper()}_party_mapping_speech_to_mpds.csv"
+def load_party_mapping(country_code: str, party_mapping_dir: Path) -> pd.DataFrame:
+    path = party_mapping_dir / f"{country_code.upper()}_party_mapping_speech_to_mpds.csv"
     if not path.exists():
         raise FileNotFoundError(f"Missing party mapping file: {path}")
 
@@ -473,7 +485,13 @@ def output_paths(output_dir: Path, country_code: str) -> dict[str, Path]:
     }
 
 
-def run(country_code: str, output_dir: Path, translation: str | None, skip_download: bool) -> dict[str, Any]:
+def run(
+    country_code: str,
+    output_dir: Path,
+    party_mapping_dir: Path,
+    translation: str | None,
+    skip_download: bool,
+) -> dict[str, Any]:
     normalized_code = country_code.strip().upper()
     if normalized_code not in COUNTRY_NAME_BY_CODE:
         raise ValueError(
@@ -482,7 +500,7 @@ def run(country_code: str, output_dir: Path, translation: str | None, skip_downl
         )
 
     speeches_df = load_speech_rows(normalized_code)
-    mapping_df = load_party_mapping(normalized_code)
+    mapping_df = load_party_mapping(normalized_code, party_mapping_dir)
     eligible_df = build_eligible_party_index(speeches_df, mapping_df)
     if eligible_df.empty:
         raise RuntimeError(f"No mapped speech parties found in the {normalized_code} dataset.")
@@ -575,6 +593,7 @@ def main(argv: list[str] | None = None) -> int:
     result = run(
         country_code=args.country,
         output_dir=args.output_dir,
+        party_mapping_dir=args.party_mapping_dir,
         translation=args.translation,
         skip_download=args.skip_download,
     )
