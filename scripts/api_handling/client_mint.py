@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import os
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -194,7 +195,9 @@ def load_people(list_person_path: Path) -> dict[str, PersonRecord]:
 
 
 def detect_metadata_file(tei_root: Path, suffix: str) -> Path:
-    matches = sorted(tei_root.glob(f"*-{suffix}.xml"))
+    matches = sorted(
+        path for path in tei_root.glob(f"*-{suffix}.xml") if not path.name.startswith(".")
+    )
     if not matches:
         raise FileNotFoundError(
             f"Could not find '*-{suffix}.xml' under {tei_root}"
@@ -203,7 +206,11 @@ def detect_metadata_file(tei_root: Path, suffix: str) -> Path:
 
 
 def detect_optional_taxonomy_file(tei_root: Path, taxonomy_name: str) -> Path | None:
-    matches = sorted(tei_root.glob(f"*taxonomy-{taxonomy_name}.xml"))
+    matches = sorted(
+        path
+        for path in tei_root.glob(f"*taxonomy-{taxonomy_name}.xml")
+        if not path.name.startswith(".")
+    )
     return matches[0] if matches else None
 
 
@@ -651,6 +658,8 @@ def is_tei_speech_file(path: Path) -> bool:
     if path.suffix.lower() != ".xml":
         return False
     name = path.name
+    if name.startswith("."):
+        return False
     if "listPerson" in name or "listOrg" in name:
         return False
     if "taxonomy" in name:
@@ -860,9 +869,10 @@ def write_rows_to_csv(
     include_notes: bool,
 ) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_output_path = output_path.with_suffix(f"{output_path.suffix}.tmp")
 
     rows_written = 0
-    with output_path.open("w", encoding="utf-8", newline="") as output_file:
+    with temporary_output_path.open("w", encoding="utf-8", newline="") as output_file:
         writer = csv.DictWriter(output_file, fieldnames=FIELDNAMES)
         writer.writeheader()
 
@@ -880,6 +890,7 @@ def write_rows_to_csv(
             if idx % 200 == 0:
                 print(f"Processed {idx}/{len(jobs)} files, rows={rows_written}")
 
+    os.replace(temporary_output_path, output_path)
     return rows_written
 
 

@@ -48,8 +48,7 @@ def load_country(country_code: str) -> pd.DataFrame:
     df["month_start"] = df["date"].dt.to_period("M").dt.to_timestamp()
     return df.reset_index(drop=True)
 
-def merge_topics(df: pd.DataFrame):
-    BROAD_TOPIC_MAP = {
+BROAD_TOPIC_MAP = {
     "Agriculture": "Environment_Land_Energy",
     "Civil Rights": "Institutions_Rights_Law",
     "Culture": "Culture_Identity",
@@ -73,8 +72,21 @@ def merge_topics(df: pd.DataFrame):
     "Transportation": "Infrastructure_Technology",
     "Other": "Residual",
     "Mix": "Residual",
-    }
-    
-    df["broad_topic"] = df["topic_label"].map(BROAD_TOPIC_MAP) 
-    return df
+}
 
+HYBRID_TOPIC_MAP = {
+    **BROAD_TOPIC_MAP,
+    "Civil Rights": "Gal_Tan",
+    "Culture": "Gal_Tan",
+    "Immigration": "Gal_Tan",
+    "Law and Crime": "Gal_Tan",
+    "Macroeconomics": "Macroeconomics",
+}
+
+
+def merge_topics(df: pd.DataFrame):
+    df = df.copy()
+    df["original_topic_label"] = df["topic_label"]
+    df["broad_topic"] = df["topic_label"].map(BROAD_TOPIC_MAP)
+    df["topic_label"] = df["topic_label"].map(HYBRID_TOPIC_MAP)
+    return df
