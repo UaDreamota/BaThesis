@@ -144,8 +144,16 @@ def load_manifesto_quasi_sentences(path: Path, text_column: str) -> pd.DataFrame
     data = data.dropna(subset=["doc_key", text_column]).copy()
     data[text_column] = data[text_column].astype(str).str.strip()
     data = data[data[text_column] != ""].copy()
+    token_mask = data[text_column].map(lambda text: len(simple_tokenizer(str(text))) > 0)
+    dropped_rows = int((~token_mask).sum())
+    if dropped_rows:
+        print(
+            f"Dropped {dropped_rows:,} manifesto quasi-sentence row(s) with no "
+            "PLDA tokens after tokenization."
+        )
+    data = data.loc[token_mask].copy()
     if data.empty:
-        raise ValueError(f"No non-empty manifesto quasi-sentences found in {path}")
+        raise ValueError(f"No tokenizable manifesto quasi-sentences found in {path}")
 
     return data.reset_index(drop=True)
 
