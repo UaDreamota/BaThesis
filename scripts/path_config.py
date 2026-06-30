@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PARLAM_DATA_DIR = REPO_ROOT / "data" / "parlam"
+DEFAULT_DATA_DIR = REPO_ROOT / "data"
+DEFAULT_PARLAM_DATA_DIR = DEFAULT_DATA_DIR / "parlam"
 
 load_dotenv(REPO_ROOT / ".env")
 
@@ -25,12 +26,33 @@ def _normalize_env_path(raw_path: str) -> Path:
     return Path(raw_path).expanduser()
 
 
-def get_parlam_data_dir() -> Path:
-    raw_path = os.getenv("PARLAM_DATA_PATH")
-    if not raw_path:
-        return DEFAULT_PARLAM_DATA_DIR
+def _env_path(*names: str) -> Path | None:
+    for name in names:
+        raw_path = os.getenv(name)
+        if raw_path:
+            return _normalize_env_path(raw_path.strip().strip('"').strip("'"))
+    return None
 
-    candidate = _normalize_env_path(raw_path)
+
+def get_data_dir() -> Path:
+    return _env_path(
+        "DATA_FOLDER",
+        "data_folder",
+        "DATA_PATH",
+        "PROJECT_DATA_PATH",
+        "BA_THESIS_DATA_PATH",
+    ) or DEFAULT_DATA_DIR
+
+
+def get_data_path(*parts: str) -> Path:
+    return get_data_dir().joinpath(*parts)
+
+
+def get_parlam_data_dir() -> Path:
+    candidate = _env_path("PARLAM_DATA_PATH")
+    if candidate is None:
+        data_dir = get_data_dir()
+        candidate = data_dir if data_dir.name.lower() == "parlam" else data_dir / "parlam"
     if candidate.name.lower() == "parlam":
         return candidate
 

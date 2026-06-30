@@ -22,7 +22,7 @@ DEFAULT_INPUT = (
     / "CZ"
     / "CZ_Gal_Tan_nli_pairs.csv"
 )
-DEFAULT_MODEL = "gpt-4.1-mini"
+DEFAULT_MODEL = "gpt-5.4-mini"
 API_URL = "https://api.openai.com/v1/responses"
 VALID_LABELS = {"entailment", "inconsistent", "neutral"}
 
@@ -270,6 +270,23 @@ def output_fieldnames(input_fieldnames: list[str]) -> list[str]:
     return input_fieldnames + [field for field in extra if field not in input_fieldnames]
 
 
+def validate_existing_output_schema(path: Path, expected_fieldnames: list[str]) -> None:
+    if not path.exists():
+        return
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.reader(handle)
+        existing_fieldnames = next(reader, [])
+    if existing_fieldnames != expected_fieldnames:
+        missing = [field for field in expected_fieldnames if field not in existing_fieldnames]
+        extra = [field for field in existing_fieldnames if field not in expected_fieldnames]
+        raise ValueError(
+            f"Existing output CSV has a different schema: {path}. "
+            f"Use --overwrite or pass a new --output path. "
+            f"Missing columns in existing output: {missing}. "
+            f"Extra columns in existing output: {extra}."
+        )
+
+
 def append_rows(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     write_header = not path.exists()
@@ -307,6 +324,7 @@ def main(argv: list[str] | None = None) -> int:
     if not rows:
         raise ValueError(f"No rows found in {args.input}")
     fieldnames = output_fieldnames(list(rows[0].keys()))
+    validate_existing_output_schema(output_path, fieldnames)
 
     label_filter = (
         {label.strip().lower() for label in args.nli_labels if label.strip()}

@@ -13,13 +13,15 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 SCRIPTS_DIR = SCRIPT_DIR.parent
 BASE_DIR = SCRIPTS_DIR.parent
 TEST_OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches"
-DEFAULT_PARLGOV_DB = BASE_DIR / "data" / "parlgov" / "parlgov-stable.db"
 DEFAULT_OUTPUT_DIR = TEST_OUTPUT_DIR / "plda_regression_panel"
 
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+from path_config import get_data_path
 from utils import load_country
+
+DEFAULT_PARLGOV_DB = get_data_path("parlgov", "parlgov-stable.db")
 
 
 PARLGOV_COUNTRY_SHORT_BY_CODE = {

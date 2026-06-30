@@ -14,12 +14,12 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.append(str(PACKAGE_ROOT))
 
-from path_config import get_parlam_csv_path, get_parlam_data_dir
+from path_config import get_data_path, get_parlam_csv_path, get_parlam_data_dir
 
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 PARLA_DATA_DIR = get_parlam_data_dir()
-MPDS_PATH = BASE_DIR / "data" / "MPDataset_MPDS2025a.csv"
+MPDS_PATH = get_data_path("MPDataset_MPDS2025a.csv")
 OUTPUT_DIR = BASE_DIR / "scripts" / "party_mappings"
 
 UKRAINE_MAPPING_PATH = (

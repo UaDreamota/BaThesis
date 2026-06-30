@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-MPDS_PATH = REPO_ROOT / "data" / "MPDataset_MPDS2025a.csv"
 DEFAULT_PARTY_MAPPING_DIR = SCRIPTS_DIR / "party_mappings"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs" / "manifesto_quasi_sentences"
 
@@ -22,10 +21,11 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.append(str(SCRIPTS_DIR))
 
 from api_client import ManifestoApiClient
-from path_config import get_parlam_csv_path
+from path_config import get_data_path, get_parlam_csv_path
 
 
 load_dotenv(REPO_ROOT / ".env")
+MPDS_PATH = get_data_path("MPDataset_MPDS2025a.csv")
 MPDS_KEY = "MPDS2025a"
 CORPUS_VER = "2025-1"
 

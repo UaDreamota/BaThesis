@@ -19,7 +19,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 TEST_OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches"
 MANIFESTO_INPUT_DIR = BASE_DIR / "outputs" / "manifesto_quasi_sentences"
 DEFAULT_OUTPUT_DIR = TEST_OUTPUT_DIR / "nli_inconsistency"
-DEFAULT_MODEL_NAME = "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
+DEFAULT_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings"
 TOPIC_COLUMN_RE = re.compile(r"^topic_(\d+)$")
@@ -82,6 +82,7 @@ EN_SHORT_PROCEDURAL_RE = re.compile(
     r"give\s+way|speaker|deputy\s+speaker|chair)\b"
 )
 NAME_ONLY_RE = re.compile(r"^\s*[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\wÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž-]+(?:\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\wÁČĎÉĚÍŇÓŘŠŤÚŮÝŽáčďéěíňóřšťúůýž-]+){1,2}\s*$")
+SENTENCE_BOUNDARY_RE = re.compile(r"(?<=[.!?])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -114,6 +115,39 @@ def build_parser() -> argparse.ArgumentParser:
             "Maximum manifesto quasi-sentence comparisons per sampled speech. "
             "Use 0 to keep all candidate pairs after filtering/retrieval."
         ),
+    )
+    parser.add_argument(
+        "--speech-unit",
+        choices=["speech", "segment"],
+        default="speech",
+        help=(
+            "Use whole speeches for retrieval/NLI, or split sampled speeches into "
+            "overlapping sentence-window segments before pairing."
+        ),
+    )
+    parser.add_argument(
+        "--segment-window-size",
+        default=2,
+        type=int,
+        help="Number of sentences per segment when --speech-unit segment is used.",
+    )
+    parser.add_argument(
+        "--segment-stride",
+        default=1,
+        type=int,
+        help="Sentence stride for overlapping segments when --speech-unit segment is used.",
+    )
+    parser.add_argument(
+        "--min-segment-words",
+        default=12,
+        type=int,
+        help="Minimum word count for segment rows when --speech-unit segment is used.",
+    )
+    parser.add_argument(
+        "--max-segment-words",
+        default=90,
+        type=int,
+        help="Maximum word count for segment rows when --speech-unit segment is used.",
     )
     parser.add_argument(
         "--pair-selection",
@@ -157,6 +191,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--random-state", default=42, type=int)
     parser.add_argument("--batch-size", default=8, type=int)
     parser.add_argument("--model-name", default=DEFAULT_MODEL_NAME, type=str)
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cuda", "mps", "cpu"],
+        default="auto",
+        help=(
+            "Torch device for transformer NLI. auto uses CUDA when available, "
+            "then Apple MPS when available, otherwise CPU."
+        ),
+    )
     parser.add_argument(
         "--min-speech-words",
         default=30,
@@ -506,6 +549,93 @@ def sample_speeches(
     return sampled.reset_index(drop=True)
 
 
+def split_sentences(text: object) -> list[str]:
+    cleaned = re.sub(r"\s+", " ", str(text).strip())
+    if not cleaned:
+        return []
+    sentences = [part.strip() for part in SENTENCE_BOUNDARY_RE.split(cleaned) if part.strip()]
+    return sentences or [cleaned]
+
+
+def build_sentence_windows(
+    sentences: list[str],
+    window_size: int,
+    stride: int,
+) -> list[tuple[int, int, str]]:
+    if not sentences:
+        return []
+    effective_window = min(window_size, len(sentences))
+    windows = []
+    for start in range(0, len(sentences), stride):
+        end = min(start + effective_window, len(sentences))
+        if end <= start:
+            continue
+        windows.append((start, end - 1, " ".join(sentences[start:end]).strip()))
+        if end == len(sentences):
+            break
+    return windows
+
+
+def build_speech_units(
+    speeches: pd.DataFrame,
+    speech_unit: str,
+    window_size: int,
+    stride: int,
+    min_segment_words: int,
+    max_segment_words: int,
+) -> pd.DataFrame:
+    if speech_unit == "speech":
+        units = speeches.copy()
+        units["speech_unit"] = "speech"
+        units["speech_segment_id"] = pd.NA
+        units["retrieval_unit_id"] = units["plda_doc_id"].astype(str)
+        units["speech_segment_index"] = pd.NA
+        units["segment_start_sentence"] = pd.NA
+        units["segment_end_sentence"] = pd.NA
+        units["speech_text_original_full"] = units["speech_text_original"]
+        return units.reset_index(drop=True)
+
+    segment_rows: list[pd.Series] = []
+    for speech in speeches.itertuples(index=False):
+        row = pd.Series(speech._asdict())
+        full_text = str(row.get("text", "")).strip()
+        sentences = split_sentences(full_text)
+        segment_index = 0
+        for start, end, segment_text in build_sentence_windows(sentences, window_size, stride):
+            segment_words = word_count(segment_text)
+            if min_segment_words > 0 and segment_words < min_segment_words:
+                continue
+            if max_segment_words > 0 and segment_words > max_segment_words:
+                continue
+            segment_row = row.copy()
+            segment_row["speech_unit"] = "segment"
+            segment_row["speech_segment_id"] = f"{row['plda_doc_id']}:{segment_index}"
+            segment_row["retrieval_unit_id"] = segment_row["speech_segment_id"]
+            segment_row["speech_segment_index"] = segment_index
+            segment_row["segment_start_sentence"] = start
+            segment_row["segment_end_sentence"] = end
+            segment_row["speech_text_original_full"] = row.get("speech_text_original", full_text)
+            segment_row["speech_segment_text"] = segment_text
+            segment_row["text"] = segment_text
+            segment_row["speech_text_for_nli"] = segment_text
+            segment_row["speech_word_count_for_nli"] = segment_words
+            segment_rows.append(segment_row)
+            segment_index += 1
+
+    if not segment_rows:
+        raise ValueError(
+            "No speech segments remained after segmentation filters. "
+            "Lower --min-segment-words, raise --max-segment-words, or use --speech-unit speech."
+        )
+    return pd.DataFrame(segment_rows).reset_index(drop=True)
+
+
+def retrieval_group_column(pairs: pd.DataFrame) -> str:
+    if "retrieval_unit_id" in pairs.columns:
+        return "retrieval_unit_id"
+    return "plda_doc_id"
+
+
 def prepare_manifesto_quasi(
     manifesto_df: pd.DataFrame,
     topic_cols: list[str],
@@ -533,20 +663,21 @@ def select_random_pairs(
     pairs_per_speech: int,
     random_state: int,
 ) -> pd.DataFrame:
+    group_col = retrieval_group_column(pairs)
     if pairs_per_speech > 0:
         sampled_parts = [
             group.sample(
                 n=min(len(group), pairs_per_speech),
                 random_state=random_state,
             )
-            for _, group in pairs.groupby("plda_doc_id", sort=False)
+            for _, group in pairs.groupby(group_col, sort=False)
         ]
         pairs = pd.concat(sampled_parts, ignore_index=True)
     else:
         pairs = pairs.copy()
 
     pairs["retrieval_score"] = pd.NA
-    pairs["retrieval_rank"] = pairs.groupby("plda_doc_id", sort=False).cumcount() + 1
+    pairs["retrieval_rank"] = pairs.groupby(group_col, sort=False).cumcount() + 1
     pairs["pair_selection_method"] = "random"
     return pairs
 
@@ -572,7 +703,8 @@ def select_tfidf_topk_pairs(
     min_retrieval_score: float,
 ) -> pd.DataFrame:
     selected_parts = []
-    for _, group in pairs.groupby("plda_doc_id", sort=False):
+    group_col = retrieval_group_column(pairs)
+    for _, group in pairs.groupby(group_col, sort=False):
         group = group.copy()
         speech_text = str(group["text"].iloc[0])
         manifesto_texts = group["manifesto_text"].fillna("").astype(str).tolist()
@@ -694,7 +826,8 @@ def select_openai_embedding_topk_pairs(
     )
 
     selected_parts = []
-    for _, group in pairs.groupby("plda_doc_id", sort=False):
+    group_col = retrieval_group_column(pairs)
+    for _, group in pairs.groupby(group_col, sort=False):
         group = group.copy()
         speech_text = str(group["text"].iloc[0]).strip()
         speech_vector = embeddings.get(speech_text)
@@ -815,10 +948,15 @@ def build_pair_quality_diagnostics(
     pairs_per_speech: int,
     min_retrieval_score: float,
 ) -> dict[str, pd.DataFrame]:
+    group_col = retrieval_group_column(candidate_pairs)
     sampled_speech_ids = set(sampled_speeches["plda_doc_id"].dropna().tolist())
     bridge_speech_ids = set(bridge_matches["plda_doc_id"].dropna().tolist())
     candidate_speech_ids = set(candidate_pairs["plda_doc_id"].dropna().tolist())
     selected_speech_ids = set(selected_pairs["plda_doc_id"].dropna().tolist())
+    sampled_unit_ids = set(sampled_speeches[group_col].dropna().tolist()) if group_col in sampled_speeches.columns else sampled_speech_ids
+    bridge_unit_ids = set(bridge_matches[group_col].dropna().tolist()) if group_col in bridge_matches.columns else bridge_speech_ids
+    candidate_unit_ids = set(candidate_pairs[group_col].dropna().tolist())
+    selected_unit_ids = set(selected_pairs[group_col].dropna().tolist())
 
     retrieval_summary = (
         numeric_summary(selected_pairs["retrieval_score"], "retrieval_score")
@@ -832,18 +970,22 @@ def build_pair_quality_diagnostics(
                 "pairs_per_speech": pairs_per_speech,
                 "min_retrieval_score": min_retrieval_score,
                 "sampled_speeches": len(sampled_speech_ids),
+                "sampled_units": len(sampled_unit_ids),
                 "sampled_parties": sampled_speeches["party"].nunique(),
                 "sampled_months": sampled_speeches["month"].nunique(),
                 "bridge_matched_speeches": len(bridge_speech_ids),
+                "bridge_matched_units": len(bridge_unit_ids),
                 "bridge_matched_parties": bridge_matches["party"].nunique(),
                 "bridge_matched_months": bridge_matches["month"].nunique(),
                 "candidate_speeches": len(candidate_speech_ids),
+                "candidate_units": len(candidate_unit_ids),
                 "candidate_pairs": len(candidate_pairs),
                 "candidate_parties": candidate_pairs["party"].nunique(),
                 "candidate_months": candidate_pairs["month"].nunique(),
                 "candidate_manifesto_docs": candidate_pairs["doc_key"].nunique(),
                 "candidate_manifesto_quasi": candidate_pairs["quasi_sentence_id"].nunique(),
                 "selected_speeches": len(selected_speech_ids),
+                "selected_units": len(selected_unit_ids),
                 "selected_pairs": len(selected_pairs),
                 "selected_parties": selected_pairs["party"].nunique(),
                 "selected_months": selected_pairs["month"].nunique(),
@@ -855,6 +997,8 @@ def build_pair_quality_diagnostics(
                 / max(len(bridge_speech_ids), 1),
                 "candidate_to_selected_speech_retention": len(selected_speech_ids)
                 / max(len(candidate_speech_ids), 1),
+                "candidate_to_selected_unit_retention": len(selected_unit_ids)
+                / max(len(candidate_unit_ids), 1),
                 "candidate_to_selected_pair_retention": len(selected_pairs)
                 / max(len(candidate_pairs), 1),
                 **retrieval_summary,
@@ -888,9 +1032,9 @@ def build_pair_quality_diagnostics(
     )
 
     candidate_by_speech = (
-        candidate_pairs.groupby("plda_doc_id", as_index=False)
+        candidate_pairs.groupby(group_col, as_index=False)
         .agg(
-            candidate_pairs=("plda_doc_id", "size"),
+            candidate_pairs=(group_col, "size"),
             candidate_manifesto_docs=("doc_key", "nunique"),
             candidate_manifesto_quasi=("quasi_sentence_id", "nunique"),
         )
@@ -917,12 +1061,18 @@ def build_pair_quality_diagnostics(
     if "retrieval_rank" in selected_pairs.columns:
         selected_aggs["best_retrieval_rank"] = ("retrieval_rank", "min")
     selected_by_speech = (
-        selected_for_speech.groupby("plda_doc_id", as_index=False)
+        selected_for_speech.groupby(group_col, as_index=False)
         .agg(**selected_aggs)
         .reset_index(drop=True)
     )
     speech_cols = ["plda_doc_id", "party", "month"]
     optional_speech_cols = [
+        "speech_unit",
+        "speech_segment_id",
+        "retrieval_unit_id",
+        "speech_segment_index",
+        "segment_start_sentence",
+        "segment_end_sentence",
         "speech_selected_topic_mass",
         "speech_word_count_for_nli",
         "speech_is_procedural",
@@ -930,9 +1080,9 @@ def build_pair_quality_diagnostics(
     speech_cols.extend([col for col in optional_speech_cols if col in sampled_speeches.columns])
     by_speech = (
         sampled_speeches[speech_cols]
-        .drop_duplicates("plda_doc_id")
-        .merge(candidate_by_speech, on="plda_doc_id", how="left")
-        .merge(selected_by_speech, on="plda_doc_id", how="left")
+        .drop_duplicates(group_col if group_col in sampled_speeches.columns else "plda_doc_id")
+        .merge(candidate_by_speech, on=group_col, how="left")
+        .merge(selected_by_speech, on=group_col, how="left")
     )
     count_cols = [
         col
@@ -991,6 +1141,8 @@ def build_pairs(
     print(
         f"Bridge join retained {merged['plda_doc_id'].nunique():,}/"
         f"{speeches['plda_doc_id'].nunique():,} sampled speeches "
+        f"and {merged[retrieval_group_column(merged)].nunique():,}/"
+        f"{speeches[retrieval_group_column(speeches)].nunique():,} retrieval units "
         f"across {merged['party'].nunique():,}/{speeches['party'].nunique():,} parties."
     )
     if merged.empty:
@@ -1031,7 +1183,9 @@ def build_pairs(
     )
     print(
         f"Selected {len(pairs):,} pair(s) from "
-        f"{pairs['plda_doc_id'].nunique():,} speech rows using {pair_selection!r}."
+        f"{pairs['plda_doc_id'].nunique():,} speech row(s) and "
+        f"{pairs[retrieval_group_column(pairs)].nunique():,} retrieval unit(s) "
+        f"using {pair_selection!r}."
     )
     pair_quality = build_pair_quality_diagnostics(
         sampled_speeches=speeches,
@@ -1075,15 +1229,62 @@ def nli_label_order(model: Any) -> list[str]:
     return [aliases.get(label, label) for label in labels]
 
 
+def torch_mps_available(torch_module: Any) -> bool:
+    mps_backend = getattr(getattr(torch_module, "backends", None), "mps", None)
+    return bool(mps_backend and mps_backend.is_available())
+
+
+def resolve_torch_device(torch_module: Any, device_name: str) -> Any:
+    cuda_available = bool(torch_module.cuda.is_available())
+    mps_available = torch_mps_available(torch_module)
+    requested = device_name.lower()
+
+    if requested == "cuda":
+        if cuda_available:
+            return torch_module.device("cuda")
+        print("Requested --device cuda, but CUDA is not available. Falling back to CPU.")
+        return torch_module.device("cpu")
+    if requested == "mps":
+        if mps_available:
+            return torch_module.device("mps")
+        print("Requested --device mps, but Apple MPS is not available. Falling back to CPU.")
+        return torch_module.device("cpu")
+    if requested == "cpu":
+        return torch_module.device("cpu")
+    if cuda_available:
+        return torch_module.device("cuda")
+    if mps_available:
+        return torch_module.device("mps")
+    return torch_module.device("cpu")
+
+
+def print_torch_device_summary(torch_module: Any, device: Any) -> None:
+    cuda_available = bool(torch_module.cuda.is_available())
+    mps_available = torch_mps_available(torch_module)
+    print(
+        "Torch device check: "
+        f"cuda_available={cuda_available}, "
+        f"mps_available={mps_available}, "
+        f"selected_device={device}"
+    )
+    if cuda_available:
+        try:
+            print(f"CUDA device: {torch_module.cuda.get_device_name(0)}")
+        except Exception:
+            pass
+
+
 def classify_pairs(
     pairs: pd.DataFrame,
     model_name: str,
     batch_size: int,
+    device_name: str,
 ) -> pd.DataFrame:
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = resolve_torch_device(torch, device_name)
+    print_torch_device_summary(torch, device)
     print(f"Loading NLI tokenizer/model on {device}: {model_name}")
     load_start = time.perf_counter()
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -1200,6 +1401,16 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--sample-size must be >= 0.")
     if args.pairs_per_speech < 0:
         raise ValueError("--pairs-per-speech must be >= 0.")
+    if args.segment_window_size <= 0:
+        raise ValueError("--segment-window-size must be > 0.")
+    if args.segment_stride <= 0:
+        raise ValueError("--segment-stride must be > 0.")
+    if args.min_segment_words < 0:
+        raise ValueError("--min-segment-words must be >= 0.")
+    if args.max_segment_words < 0:
+        raise ValueError("--max-segment-words must be >= 0.")
+    if args.max_segment_words and args.max_segment_words < args.min_segment_words:
+        raise ValueError("--max-segment-words must be >= --min-segment-words, or 0.")
     if args.min_retrieval_score < 0:
         raise ValueError("--min-retrieval-score must be >= 0.")
     if args.min_retrieval_score > 1:
@@ -1283,6 +1494,19 @@ def main(argv: list[str] | None = None) -> int:
         f"Sampled {len(speeches):,} speech rows from "
         f"{speeches['party'].nunique():,} parties."
     )
+    speeches = build_speech_units(
+        speeches=speeches,
+        speech_unit=args.speech_unit,
+        window_size=args.segment_window_size,
+        stride=args.segment_stride,
+        min_segment_words=args.min_segment_words,
+        max_segment_words=args.max_segment_words,
+    )
+    if args.speech_unit == "segment":
+        print(
+            f"Built {len(speeches):,} speech segment unit(s) from "
+            f"{speeches['plda_doc_id'].nunique():,} sampled speeches."
+        )
     print("Filtering manifesto quasi-sentences...")
     manifesto_df = prepare_manifesto_quasi(
         manifesto_df=manifesto_df,
@@ -1318,6 +1542,7 @@ def main(argv: list[str] | None = None) -> int:
         pairs=pairs,
         model_name=args.model_name,
         batch_size=args.batch_size,
+        device_name=args.device,
     )
 
     classified.to_csv(paths["pairs"], index=False)
