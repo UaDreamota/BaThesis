@@ -128,9 +128,13 @@ class ManifestoApiClient:
         }
 
 
-manifesto_client = ManifestoApiClient(
-    MANIFESTO_BASE, MANIFESTO_KEY, MPDS_KEY, CORPUS_VER
-)
+def create_default_manifesto_client() -> ManifestoApiClient:
+    if not MANIFESTO_BASE or not MANIFESTO_KEY:
+        raise RuntimeError("Missing manifesto API configuration in .env")
+    return ManifestoApiClient(MANIFESTO_BASE, MANIFESTO_KEY, MPDS_KEY, CORPUS_VER)
+
+
+manifesto_client: ManifestoApiClient | None = None
 
 
 # How to use it:
@@ -140,17 +144,18 @@ manifesto_client = ManifestoApiClient(
 
 
 def main():
-    print(manifesto_client.test_api())
-    mpds = manifesto_client.fetch_mpds()
-    ua_parties = manifesto_client.list_parties_by_country(mpds, "Ukraine")
+    client = create_default_manifesto_client()
+    print(client.test_api())
+    mpds = client.fetch_mpds()
+    ua_parties = client.list_parties_by_country(mpds, "Ukraine")
     print(ua_parties)
     print("Total unique UA parties:", len(ua_parties))
     party_id = 98952  # Yuschenko - 98615
-    dates_df = manifesto_client.list_dates_for_party(mpds, party_id)
+    dates_df = client.list_dates_for_party(mpds, party_id)
     print(dates_df)
 
     chosen_date = int(dates_df["date"].max())
-    result = manifesto_client.get_text_for_party_date(
+    result = client.get_text_for_party_date(
         party_id, chosen_date, translation=None
     )
 

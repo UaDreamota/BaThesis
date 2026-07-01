@@ -10,9 +10,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from dotenv import load_dotenv
+
 
 REPO_ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
+load_dotenv(REPO_ROOT / ".env")
 
 
 def looks_like_parlam_dir(path: Path) -> bool:

@@ -19,6 +19,7 @@ PACKAGE_ROOT = SCRIPT_DIR.parent
 if str(PACKAGE_ROOT) not in sys.path:
     sys.path.insert(0, str(PACKAGE_ROOT))
 
+from path_config import get_parlam_data_dir, normalize_path
 from utils import load_country, merge_topics
 
 
@@ -223,6 +224,7 @@ def get_topic_distribution(model: tp.PLDAModel) -> pd.DataFrame:
 
 
 def country_suffixed_path(path: Path, country_code: str) -> Path:
+    path = normalize_path(path)
     suffix = f"_{country_code.upper()}"
     if path.stem.upper().endswith(suffix):
         return path
@@ -250,6 +252,7 @@ def build_speech_topic_output(
 def main(args: argparse.Namespace):
     validate_args(args)
     country_code = args.c.strip().upper()
+    print(f"ParlaMint data dir: {get_parlam_data_dir()}")
     grid_log_output = country_suffixed_path(args.grid_log_output, country_code)
     distribution_output = country_suffixed_path(args.distribution_output, country_code)
     speech_output = country_suffixed_path(args.speech_output, country_code)

@@ -21,7 +21,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.append(str(SCRIPTS_DIR))
 
 from api_client import ManifestoApiClient
-from path_config import get_data_path, get_parlam_csv_path
+from path_config import get_data_path, get_parlam_csv_path, get_parlam_data_dir, normalize_path
 
 
 load_dotenv(REPO_ROOT / ".env")
@@ -592,12 +592,13 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     result = run(
         country_code=args.country,
-        output_dir=args.output_dir,
-        party_mapping_dir=args.party_mapping_dir,
+        output_dir=normalize_path(args.output_dir),
+        party_mapping_dir=normalize_path(args.party_mapping_dir),
         translation=args.translation,
         skip_download=args.skip_download,
     )
 
+    print(f"[{result['country_code']}] ParlaMint data dir: {get_parlam_data_dir()}")
     print(f"[{result['country_code']}] eligible mapped speech parties: {result['eligible_parties']}")
     print(f"[{result['country_code']}] speech-party-date rows: {result['speech_dates']}")
     print(f"[{result['country_code']}] speech-party-month rows: {result['speech_months']}")

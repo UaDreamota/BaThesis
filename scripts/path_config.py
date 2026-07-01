@@ -34,6 +34,10 @@ def _env_path(*names: str) -> Path | None:
     return None
 
 
+def normalize_path(path: str | Path) -> Path:
+    return _normalize_env_path(str(path).strip().strip('"').strip("'"))
+
+
 def get_data_dir() -> Path:
     return _env_path(
         "DATA_FOLDER",

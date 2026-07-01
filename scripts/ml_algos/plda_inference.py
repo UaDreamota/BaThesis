@@ -18,9 +18,13 @@ MANIFESTO_INPUT_DIR = BASE_DIR / "outputs" / "manifesto_quasi_sentences"
 DEFAULT_OUTPUT_DIR = TEST_OUTPUT_DIR / "plda_manifesto_inference"
 TOPIC_COLUMN_RE = re.compile(r"^topic_(\d+)$")
 
+PACKAGE_ROOT = SCRIPT_DIR.parent
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from path_config import normalize_path
 from plda_test import simple_tokenizer
 
 
@@ -123,10 +127,10 @@ def default_document_output(country_code: str) -> Path:
 
 def resolve_paths(args: argparse.Namespace) -> tuple[Path, Path, Path, Path]:
     country_code = args.c.strip().upper()
-    model_input = args.model_input or default_model_input(country_code)
-    manifesto_input = args.manifesto_input or default_manifesto_input(country_code)
-    quasi_output = args.quasi_output or default_quasi_output(country_code)
-    document_output = args.document_output or default_document_output(country_code)
+    model_input = normalize_path(args.model_input or default_model_input(country_code))
+    manifesto_input = normalize_path(args.manifesto_input or default_manifesto_input(country_code))
+    quasi_output = normalize_path(args.quasi_output or default_quasi_output(country_code))
+    document_output = normalize_path(args.document_output or default_document_output(country_code))
     return model_input, manifesto_input, quasi_output, document_output
 
 
