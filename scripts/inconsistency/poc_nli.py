@@ -94,7 +94,12 @@ def build_parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument("--country", "--c", dest="country", default="CZ", type=str)
-    parser.add_argument("--topic", default="Gal_Tan", type=str)
+    parser.add_argument(
+        "--topic",
+        default="Gal_Tan",
+        type=str,
+        help="Topic label to run, or 'all' to run every topic_label in the speech input.",
+    )
     parser.add_argument(
         "--sample-size",
         default=200,
@@ -151,13 +156,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--pair-selection",
-        choices=["openai_embedding_topk", "tfidf_topk", "random"],
+        choices=["hybrid_embedding_bm25", "embedding_topk", "openai_embedding_topk", "tfidf_topk", "random"],
         default="tfidf_topk",
         help=(
             "How to select manifesto quasi-sentences after party/month/doc_key "
-            "joining. openai_embedding_topk uses OpenAI embeddings for semantic "
-            "retrieval; tfidf_topk ranks candidates by lexical TF-IDF cosine "
-            "similarity; random preserves the original random sampling behavior."
+            "joining. embedding_topk uses the selected embedding provider; "
+            "openai_embedding_topk is a backwards-compatible alias; "
+            "hybrid_embedding_bm25 unions embedding and BM25 candidates before reranking; "
+            "tfidf_topk ranks candidates by lexical TF-IDF cosine similarity; "
+            "random preserves the original random sampling behavior."
         ),
     )
     parser.add_argument(
@@ -170,15 +177,55 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--embedding-provider",
+        choices=["openai", "local"],
+        default="openai",
+        help=(
+            "Embedding backend for embedding retrieval modes. Use openai for "
+            "text-embedding-3-small as an external benchmark, or local for Hugging Face models."
+        ),
+    )
+    parser.add_argument(
         "--embedding-model",
         default=DEFAULT_EMBEDDING_MODEL,
-        help="OpenAI embedding model used by --pair-selection openai_embedding_topk.",
+        help=(
+            "Embedding model. OpenAI benchmark: text-embedding-3-small. "
+            "Local options include Qwen/Qwen3-Embedding-0.6B, BAAI/bge-m3, "
+            "and intfloat/multilingual-e5-large."
+        ),
     )
     parser.add_argument(
         "--embedding-batch-size",
         default=96,
         type=int,
-        help="Number of texts per OpenAI embeddings request.",
+        help="Number of texts per embedding batch.",
+    )
+    parser.add_argument(
+        "--local-embedding-device",
+        choices=["auto", "cuda", "mps", "cpu"],
+        default="auto",
+        help="Torch device for local embedding models.",
+    )
+    parser.add_argument(
+        "--hybrid-embedding-top-k",
+        default=50,
+        type=int,
+        help="Number of embedding-retrieved manifesto candidates per speech unit in hybrid mode.",
+    )
+    parser.add_argument(
+        "--hybrid-bm25-top-k",
+        default=50,
+        type=int,
+        help="Number of BM25-retrieved manifesto candidates per speech unit in hybrid mode.",
+    )
+    parser.add_argument(
+        "--hybrid-rerank-top-k",
+        default=30,
+        type=int,
+        help=(
+            "Final number of unioned hybrid candidates kept after reranking. "
+            "Use 0 to fall back to --pairs-per-speech, or keep all if that is also 0."
+        ),
     )
     parser.add_argument(
         "--api-key-env",
@@ -515,6 +562,27 @@ def diagnose_speeches(
     return topic_speeches.reset_index(drop=True)
 
 
+def compact_speech_rows(speeches: pd.DataFrame) -> pd.DataFrame:
+    keep_cols = [
+        "plda_doc_id",
+        "country",
+        "date",
+        "party",
+        "month",
+        "month_start",
+        "topic_label",
+        "text",
+        "speech_text_for_nli",
+        "speech_text_original",
+        "speech_selected_topic_mass",
+        "speech_word_count_for_nli",
+        "speech_is_procedural",
+        "speech_filter_reason",
+        "speech_filter_kept",
+    ]
+    return speeches[[col for col in keep_cols if col in speeches.columns]].copy()
+
+
 def sample_speeches(
     speech_df: pd.DataFrame,
     topic: str,
@@ -546,7 +614,7 @@ def sample_speeches(
     if sample_size > 0 and len(sampled) > sample_size:
         sampled = sampled.sample(n=sample_size, random_state=random_state)
 
-    return sampled.reset_index(drop=True)
+    return compact_speech_rows(sampled).reset_index(drop=True)
 
 
 def split_sentences(text: object) -> list[str]:
@@ -595,9 +663,9 @@ def build_speech_units(
         units["speech_text_original_full"] = units["speech_text_original"]
         return units.reset_index(drop=True)
 
-    segment_rows: list[pd.Series] = []
+    segment_rows: list[dict[str, Any]] = []
     for speech in speeches.itertuples(index=False):
-        row = pd.Series(speech._asdict())
+        row = speech._asdict()
         full_text = str(row.get("text", "")).strip()
         sentences = split_sentences(full_text)
         segment_index = 0
@@ -607,18 +675,23 @@ def build_speech_units(
                 continue
             if max_segment_words > 0 and segment_words > max_segment_words:
                 continue
-            segment_row = row.copy()
-            segment_row["speech_unit"] = "segment"
-            segment_row["speech_segment_id"] = f"{row['plda_doc_id']}:{segment_index}"
-            segment_row["retrieval_unit_id"] = segment_row["speech_segment_id"]
-            segment_row["speech_segment_index"] = segment_index
-            segment_row["segment_start_sentence"] = start
-            segment_row["segment_end_sentence"] = end
-            segment_row["speech_text_original_full"] = row.get("speech_text_original", full_text)
-            segment_row["speech_segment_text"] = segment_text
-            segment_row["text"] = segment_text
-            segment_row["speech_text_for_nli"] = segment_text
-            segment_row["speech_word_count_for_nli"] = segment_words
+            segment_id = f"{row['plda_doc_id']}:{segment_index}"
+            segment_row = dict(row)
+            segment_row.update(
+                {
+                    "speech_unit": "segment",
+                    "speech_segment_id": segment_id,
+                    "retrieval_unit_id": segment_id,
+                    "speech_segment_index": segment_index,
+                    "segment_start_sentence": start,
+                    "segment_end_sentence": end,
+                    "speech_text_original_full": row.get("speech_text_original", full_text),
+                    "speech_segment_text": segment_text,
+                    "text": segment_text,
+                    "speech_text_for_nli": segment_text,
+                    "speech_word_count_for_nli": segment_words,
+                }
+            )
             segment_rows.append(segment_row)
             segment_index += 1
 
@@ -729,6 +802,73 @@ def select_tfidf_topk_pairs(
     return pd.concat(selected_parts, ignore_index=True)
 
 
+def select_tfidf_topk_pairs_from_joined(
+    merged: pd.DataFrame,
+    manifesto: pd.DataFrame,
+    pairs_per_speech: int,
+    min_retrieval_score: float,
+) -> tuple[pd.DataFrame, int]:
+    manifesto_by_doc = {
+        doc_key: group.reset_index(drop=True)
+        for doc_key, group in manifesto.groupby("doc_key", sort=False)
+    }
+    group_col = retrieval_group_column(merged)
+    selected_rows: list[dict[str, Any]] = []
+    candidate_pair_count = 0
+    total_units = merged[group_col].nunique()
+    started = time.perf_counter()
+
+    for unit_i, (_, unit_rows) in enumerate(merged.groupby(group_col, sort=False), start=1):
+        candidate_parts = []
+        bridge_rows_by_doc: dict[Any, dict[str, Any]] = {}
+        for bridge_row in unit_rows.to_dict("records"):
+            doc_key = bridge_row.get("doc_key")
+            doc_manifesto = manifesto_by_doc.get(doc_key)
+            if doc_manifesto is None or doc_manifesto.empty:
+                continue
+            candidate_parts.append(doc_manifesto)
+            bridge_rows_by_doc[doc_key] = bridge_row
+
+        if not candidate_parts:
+            continue
+
+        candidates = pd.concat(candidate_parts, ignore_index=True)
+        candidate_pair_count += len(candidates)
+        speech_text = str(unit_rows["text"].iloc[0])
+        manifesto_texts = candidates["manifesto_text"].fillna("").astype(str).tolist()
+        scores = tfidf_similarity_scores(speech_text, manifesto_texts)
+        order = np.argsort(-scores, kind="stable")
+        if min_retrieval_score > 0:
+            order = np.array([idx for idx in order if scores[idx] >= min_retrieval_score], dtype=int)
+        if pairs_per_speech > 0:
+            order = order[:pairs_per_speech]
+
+        for rank, candidate_idx in enumerate(order, start=1):
+            manifesto_row = candidates.iloc[int(candidate_idx)].to_dict()
+            bridge_row = bridge_rows_by_doc.get(manifesto_row.get("doc_key"), unit_rows.iloc[0].to_dict())
+            selected_row = dict(bridge_row)
+            selected_row.update(manifesto_row)
+            selected_row["retrieval_score"] = float(scores[int(candidate_idx)])
+            selected_row["retrieval_rank"] = rank
+            selected_row["pair_selection_method"] = "tfidf_topk"
+            selected_rows.append(selected_row)
+
+        if unit_i == 1 or unit_i % 1000 == 0 or unit_i == total_units:
+            elapsed = time.perf_counter() - started
+            print(
+                f"TF-IDF retrieval {unit_i:,}/{total_units:,} units: "
+                f"selected={len(selected_rows):,}, candidates_scored={candidate_pair_count:,}, "
+                f"elapsed={elapsed:.1f}s"
+            )
+
+    if not selected_rows:
+        raise ValueError(
+            "No speech-manifesto pairs remained after TF-IDF top-k retrieval. "
+            "Lower --min-retrieval-score or use --pair-selection random."
+        )
+    return pd.DataFrame(selected_rows), candidate_pair_count
+
+
 def openai_api_key(env_name: str) -> str:
     api_key = os.getenv(env_name)
     if not api_key and env_name == "OPENAI_API_KEY":
@@ -783,46 +923,168 @@ def embed_text_batch(
     raise RuntimeError(f"OpenAI embeddings request failed: {last_error}")
 
 
+_EMBEDDING_CACHE: dict[tuple[str, str, str, str], np.ndarray] = {}
+_LOCAL_EMBEDDING_COMPONENT_CACHE: dict[tuple[str, str], tuple[Any, Any, Any, Any]] = {}
+
+
+def embedding_input_text(text: str, model: str, role: str) -> str:
+    stripped = text.strip()
+    model_lower = model.lower()
+    if "multilingual-e5" in model_lower:
+        prefix = "query" if role == "query" else "passage"
+        return f"{prefix}: {stripped}"
+    return stripped
+
+
+def mean_pool_embeddings(last_hidden_state: Any, attention_mask: Any) -> Any:
+    import torch
+
+    mask = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
+    masked = last_hidden_state * mask
+    return masked.sum(dim=1) / torch.clamp(mask.sum(dim=1), min=1e-9)
+
+
+def load_local_embedding_components(model: str, device_name: str) -> tuple[Any, Any, Any, Any]:
+    import torch
+    from transformers import AutoModel, AutoTokenizer
+
+    device = resolve_torch_device(torch, device_name)
+    cache_key = (model, str(device))
+    cached = _LOCAL_EMBEDDING_COMPONENT_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    print_torch_device_summary(torch, device)
+    print(f"Loading local embedding tokenizer/model on {device}: {model}")
+    load_start = time.perf_counter()
+    tokenizer = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+    hf_model = AutoModel.from_pretrained(model, trust_remote_code=True).to(device)
+    hf_model.eval()
+    components = (torch, tokenizer, hf_model, device)
+    _LOCAL_EMBEDDING_COMPONENT_CACHE[cache_key] = components
+    print(f"Loaded local embedding model in {time.perf_counter() - load_start:.1f}s.")
+    return components
+
+
+def embed_local_text_batch(
+    texts: list[str],
+    model: str,
+    device_name: str,
+) -> list[np.ndarray]:
+    torch, tokenizer, hf_model, device = load_local_embedding_components(model, device_name)
+    encoded = tokenizer(
+        texts,
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors="pt",
+    )
+    encoded = {key: value.to(device) for key, value in encoded.items()}
+    with torch.no_grad():
+        output = hf_model(**encoded)
+        pooled = mean_pool_embeddings(output.last_hidden_state, encoded["attention_mask"])
+        pooled = torch.nn.functional.normalize(pooled, p=2, dim=1).cpu().numpy()
+    return [np.array(row, dtype=float) for row in pooled]
+
+
 def embed_unique_texts(
     texts: list[str],
     model: str,
-    api_key: str,
+    provider: str,
+    api_key_env: str,
     batch_size: int,
+    role: str,
+    local_device: str,
 ) -> dict[str, np.ndarray]:
     unique_texts = list(dict.fromkeys(text.strip() for text in texts if text.strip()))
     embeddings: dict[str, np.ndarray] = {}
-    total_batches = (len(unique_texts) + batch_size - 1) // batch_size
-    for batch_i, start in enumerate(range(0, len(unique_texts), batch_size), start=1):
-        batch = unique_texts[start : start + batch_size]
-        vectors = embed_text_batch(batch, model=model, api_key=api_key)
+    uncached_texts = []
+    for text in unique_texts:
+        cached = _EMBEDDING_CACHE.get((provider, model, role, text))
+        if cached is None:
+            uncached_texts.append(text)
+        else:
+            embeddings[text] = cached
+
+    total_batches = (len(uncached_texts) + batch_size - 1) // batch_size
+    api_key = openai_api_key(api_key_env) if provider == "openai" and uncached_texts else ""
+    for batch_i, start in enumerate(range(0, len(uncached_texts), batch_size), start=1):
+        batch = uncached_texts[start : start + batch_size]
+        model_inputs = [embedding_input_text(text, model, role) for text in batch]
+        if provider == "openai":
+            vectors = [np.array(vector, dtype=float) for vector in embed_text_batch(
+                model_inputs,
+                model=model,
+                api_key=api_key,
+            )]
+        elif provider == "local":
+            vectors = embed_local_text_batch(model_inputs, model=model, device_name=local_device)
+        else:
+            raise ValueError(f"Unsupported embedding provider: {provider}")
+
         for text, vector in zip(batch, vectors, strict=True):
-            arr = np.array(vector, dtype=float)
-            norm = np.linalg.norm(arr)
-            embeddings[text] = arr / norm if norm else arr
+            norm = np.linalg.norm(vector)
+            normalized = vector / norm if norm else vector
+            embeddings[text] = normalized
+            _EMBEDDING_CACHE[(provider, model, role, text)] = normalized
         print(
-            f"Embedding batch {batch_i:,}/{total_batches:,}: "
-            f"{min(start + len(batch), len(unique_texts)):,}/{len(unique_texts):,} texts."
+            f"Embedding batch {batch_i:,}/{total_batches:,} ({provider}, {role}): "
+            f"{min(start + len(batch), len(uncached_texts)):,}/{len(uncached_texts):,} uncached texts."
         )
+    if unique_texts and not uncached_texts:
+        print(f"Reused {len(unique_texts):,} cached embedding text(s) ({provider}, {role}).")
     return embeddings
 
 
-def select_openai_embedding_topk_pairs(
+def embed_query_and_passage_texts(
+    query_texts: list[str],
+    passage_texts: list[str],
+    model: str,
+    provider: str,
+    api_key_env: str,
+    batch_size: int,
+    local_device: str,
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    query_embeddings = embed_unique_texts(
+        texts=query_texts,
+        model=model,
+        provider=provider,
+        api_key_env=api_key_env,
+        batch_size=batch_size,
+        role="query",
+        local_device=local_device,
+    )
+    passage_embeddings = embed_unique_texts(
+        texts=passage_texts,
+        model=model,
+        provider=provider,
+        api_key_env=api_key_env,
+        batch_size=batch_size,
+        role="passage",
+        local_device=local_device,
+    )
+    return query_embeddings, passage_embeddings
+
+def select_embedding_topk_pairs(
     pairs: pd.DataFrame,
     pairs_per_speech: int,
     min_retrieval_score: float,
+    embedding_provider: str,
     embedding_model: str,
     embedding_batch_size: int,
     api_key_env: str,
+    local_embedding_device: str,
 ) -> pd.DataFrame:
-    texts = (
-        pairs["text"].fillna("").astype(str).str.strip().tolist()
-        + pairs["manifesto_text"].fillna("").astype(str).str.strip().tolist()
-    )
-    embeddings = embed_unique_texts(
-        texts=texts,
+    query_texts = pairs["text"].fillna("").astype(str).str.strip().tolist()
+    passage_texts = pairs["manifesto_text"].fillna("").astype(str).str.strip().tolist()
+    query_embeddings, passage_embeddings = embed_query_and_passage_texts(
+        query_texts=query_texts,
+        passage_texts=passage_texts,
         model=embedding_model,
-        api_key=openai_api_key(api_key_env),
+        provider=embedding_provider,
+        api_key_env=api_key_env,
         batch_size=embedding_batch_size,
+        local_device=local_embedding_device,
     )
 
     selected_parts = []
@@ -830,12 +1092,12 @@ def select_openai_embedding_topk_pairs(
     for _, group in pairs.groupby(group_col, sort=False):
         group = group.copy()
         speech_text = str(group["text"].iloc[0]).strip()
-        speech_vector = embeddings.get(speech_text)
+        speech_vector = query_embeddings.get(speech_text)
         if speech_vector is None:
             scores = np.zeros(len(group), dtype=float)
         else:
             manifesto_vectors = [
-                embeddings.get(text.strip())
+                passage_embeddings.get(text.strip())
                 for text in group["manifesto_text"].fillna("").astype(str)
             ]
             scores = np.array(
@@ -849,7 +1111,8 @@ def select_openai_embedding_topk_pairs(
         ranked = group.iloc[order].copy()
         ranked["retrieval_score"] = scores[order]
         ranked["retrieval_rank"] = range(1, len(ranked) + 1)
-        ranked["pair_selection_method"] = "openai_embedding_topk"
+        ranked["pair_selection_method"] = "embedding_topk"
+        ranked["embedding_provider"] = embedding_provider
         ranked["embedding_model"] = embedding_model
         if min_retrieval_score > 0:
             ranked = ranked[ranked["retrieval_score"] >= min_retrieval_score].copy()
@@ -860,11 +1123,206 @@ def select_openai_embedding_topk_pairs(
 
     if not selected_parts:
         raise ValueError(
-            "No speech-manifesto pairs remained after OpenAI embedding retrieval. "
+            "No speech-manifesto pairs remained after embedding retrieval. "
             "Lower --min-retrieval-score or use another --pair-selection mode."
         )
     return pd.concat(selected_parts, ignore_index=True)
 
+def retrieval_tokens(text: object) -> list[str]:
+    return WORD_RE.findall(str(text).lower())
+
+
+def bm25_scores(query: str, documents: list[str], k1: float = 1.5, b: float = 0.75) -> np.ndarray:
+    query_terms = retrieval_tokens(query)
+    if not query_terms or not documents:
+        return np.zeros(len(documents), dtype=float)
+
+    tokenized_docs = [retrieval_tokens(doc) for doc in documents]
+    doc_count = len(tokenized_docs)
+    doc_lengths = np.array([len(tokens) for tokens in tokenized_docs], dtype=float)
+    avg_doc_len = float(doc_lengths.mean()) if doc_count else 0.0
+    if avg_doc_len <= 0:
+        return np.zeros(len(documents), dtype=float)
+
+    dfs: dict[str, int] = {}
+    for tokens in tokenized_docs:
+        for term in set(tokens):
+            dfs[term] = dfs.get(term, 0) + 1
+
+    scores = np.zeros(doc_count, dtype=float)
+    query_vocab = set(query_terms)
+    for doc_i, tokens in enumerate(tokenized_docs):
+        if not tokens:
+            continue
+        term_counts: dict[str, int] = {}
+        for term in tokens:
+            term_counts[term] = term_counts.get(term, 0) + 1
+        length_norm = k1 * (1.0 - b + b * doc_lengths[doc_i] / avg_doc_len)
+        for term in query_vocab:
+            tf = term_counts.get(term, 0)
+            if not tf:
+                continue
+            df = dfs.get(term, 0)
+            idf = np.log(1.0 + (doc_count - df + 0.5) / (df + 0.5))
+            scores[doc_i] += idf * (tf * (k1 + 1.0)) / (tf + length_norm)
+    return scores
+
+
+def normalized_scores(scores: np.ndarray) -> np.ndarray:
+    if scores.size == 0:
+        return scores
+    min_score = float(np.min(scores))
+    max_score = float(np.max(scores))
+    if max_score <= min_score:
+        return np.ones_like(scores, dtype=float) if max_score > 0 else np.zeros_like(scores, dtype=float)
+    return (scores - min_score) / (max_score - min_score)
+
+
+def top_indices(scores: np.ndarray, top_k: int) -> list[int]:
+    if scores.size == 0 or top_k == 0:
+        return []
+    order = np.argsort(-scores, kind="stable")
+    if top_k > 0:
+        order = order[:top_k]
+    return [int(index) for index in order]
+
+
+def select_hybrid_embedding_bm25_pairs_from_joined(
+    merged: pd.DataFrame,
+    manifesto: pd.DataFrame,
+    pairs_per_speech: int,
+    min_retrieval_score: float,
+    embedding_provider: str,
+    embedding_model: str,
+    embedding_batch_size: int,
+    api_key_env: str,
+    local_embedding_device: str,
+    embedding_top_k: int,
+    bm25_top_k: int,
+    rerank_top_k: int,
+) -> tuple[pd.DataFrame, int]:
+    manifesto_by_doc = {
+        doc_key: group.reset_index(drop=True)
+        for doc_key, group in manifesto.groupby("doc_key", sort=False)
+    }
+    group_col = retrieval_group_column(merged)
+    selected_rows: list[dict[str, Any]] = []
+    candidate_pair_count = 0
+    total_units = merged[group_col].nunique()
+    started = time.perf_counter()
+
+    relevant_doc_keys = set(merged["doc_key"].dropna().tolist())
+    relevant_manifesto = manifesto[manifesto["doc_key"].isin(relevant_doc_keys)].copy()
+    query_texts = merged.drop_duplicates(group_col)["text"].fillna("").astype(str).str.strip().tolist()
+    passage_texts = relevant_manifesto["manifesto_text"].fillna("").astype(str).str.strip().tolist()
+    print(
+        "Embedding hybrid retrieval texts: "
+        f"{len(dict.fromkeys(text for text in query_texts if text)):,} unique query text(s), "
+        f"{len(dict.fromkeys(text for text in passage_texts if text)):,} unique passage text(s)."
+    )
+    query_embeddings, passage_embeddings = embed_query_and_passage_texts(
+        query_texts=query_texts,
+        passage_texts=passage_texts,
+        model=embedding_model,
+        provider=embedding_provider,
+        api_key_env=api_key_env,
+        batch_size=embedding_batch_size,
+        local_device=local_embedding_device,
+    )
+
+    for unit_i, (_, unit_rows) in enumerate(merged.groupby(group_col, sort=False), start=1):
+        candidate_parts = []
+        bridge_rows_by_doc: dict[Any, dict[str, Any]] = {}
+        for bridge_row in unit_rows.to_dict("records"):
+            doc_key = bridge_row.get("doc_key")
+            doc_manifesto = manifesto_by_doc.get(doc_key)
+            if doc_manifesto is None or doc_manifesto.empty:
+                continue
+            candidate_parts.append(doc_manifesto)
+            bridge_rows_by_doc[doc_key] = bridge_row
+
+        if not candidate_parts:
+            continue
+
+        candidates = pd.concat(candidate_parts, ignore_index=True)
+        candidate_pair_count += len(candidates)
+        speech_text = str(unit_rows["text"].iloc[0]).strip()
+        manifesto_texts = candidates["manifesto_text"].fillna("").astype(str).str.strip().tolist()
+
+        speech_vector = query_embeddings.get(speech_text)
+        if speech_vector is None:
+            embedding_scores = np.zeros(len(candidates), dtype=float)
+        else:
+            embedding_scores = np.array(
+                [
+                    float(np.dot(speech_vector, passage_embeddings[text]))
+                    if text in passage_embeddings
+                    else 0.0
+                    for text in manifesto_texts
+                ],
+                dtype=float,
+            )
+        bm25_raw_scores = bm25_scores(speech_text, manifesto_texts)
+
+        embedding_indices = top_indices(embedding_scores, embedding_top_k)
+        bm25_indices = top_indices(bm25_raw_scores, bm25_top_k)
+        union_indices = list(dict.fromkeys(embedding_indices + bm25_indices))
+        if not union_indices:
+            continue
+
+        embedding_norm = normalized_scores(embedding_scores)
+        bm25_norm = normalized_scores(bm25_raw_scores)
+        combined_scores = 0.5 * embedding_norm + 0.5 * bm25_norm
+        final_top_k = rerank_top_k if rerank_top_k > 0 else pairs_per_speech
+        ranked_indices = sorted(
+            union_indices,
+            key=lambda idx: (-float(combined_scores[idx]), idx),
+        )
+        if min_retrieval_score > 0:
+            ranked_indices = [
+                idx for idx in ranked_indices if float(combined_scores[idx]) >= min_retrieval_score
+            ]
+        if final_top_k > 0:
+            ranked_indices = ranked_indices[:final_top_k]
+
+        embedding_rank_by_index = {idx: rank for rank, idx in enumerate(embedding_indices, start=1)}
+        bm25_rank_by_index = {idx: rank for rank, idx in enumerate(bm25_indices, start=1)}
+        for rank, candidate_idx in enumerate(ranked_indices, start=1):
+            manifesto_row = candidates.iloc[int(candidate_idx)].to_dict()
+            bridge_row = bridge_rows_by_doc.get(
+                manifesto_row.get("doc_key"),
+                unit_rows.iloc[0].to_dict(),
+            )
+            selected_row = dict(bridge_row)
+            selected_row.update(manifesto_row)
+            selected_row["retrieval_score"] = float(combined_scores[candidate_idx])
+            selected_row["retrieval_rank"] = rank
+            selected_row["pair_selection_method"] = "hybrid_embedding_bm25"
+            selected_row["embedding_provider"] = embedding_provider
+            selected_row["embedding_model"] = embedding_model
+            selected_row["embedding_score"] = float(embedding_scores[candidate_idx])
+            selected_row["embedding_score_normalized"] = float(embedding_norm[candidate_idx])
+            selected_row["bm25_score"] = float(bm25_raw_scores[candidate_idx])
+            selected_row["bm25_score_normalized"] = float(bm25_norm[candidate_idx])
+            selected_row["hybrid_union_size"] = len(union_indices)
+            selected_row["hybrid_embedding_rank"] = embedding_rank_by_index.get(candidate_idx, pd.NA)
+            selected_row["hybrid_bm25_rank"] = bm25_rank_by_index.get(candidate_idx, pd.NA)
+            selected_rows.append(selected_row)
+
+        if unit_i == 1 or unit_i % 1000 == 0 or unit_i == total_units:
+            elapsed = time.perf_counter() - started
+            print(
+                f"Hybrid retrieval {unit_i:,}/{total_units:,} units: "
+                f"selected={len(selected_rows):,}, candidates_scored={candidate_pair_count:,}, "
+                f"elapsed={elapsed:.1f}s"
+            )
+
+    if not selected_rows:
+        raise ValueError(
+            "No speech-manifesto pairs remained after hybrid embedding/BM25 retrieval. "
+            "Lower --min-retrieval-score or rerank limits, or use another --pair-selection mode."
+        )
+    return pd.DataFrame(selected_rows), candidate_pair_count
 
 def select_pairs(
     pairs: pd.DataFrame,
@@ -872,25 +1330,28 @@ def select_pairs(
     pairs_per_speech: int,
     random_state: int,
     min_retrieval_score: float,
+    embedding_provider: str,
     embedding_model: str,
     embedding_batch_size: int,
     api_key_env: str,
+    local_embedding_device: str,
 ) -> pd.DataFrame:
     if pair_selection == "random":
         return select_random_pairs(pairs, pairs_per_speech, random_state)
     if pair_selection == "tfidf_topk":
         return select_tfidf_topk_pairs(pairs, pairs_per_speech, min_retrieval_score)
-    if pair_selection == "openai_embedding_topk":
-        return select_openai_embedding_topk_pairs(
+    if pair_selection in {"embedding_topk", "openai_embedding_topk"}:
+        return select_embedding_topk_pairs(
             pairs=pairs,
             pairs_per_speech=pairs_per_speech,
             min_retrieval_score=min_retrieval_score,
+            embedding_provider=embedding_provider,
             embedding_model=embedding_model,
             embedding_batch_size=embedding_batch_size,
             api_key_env=api_key_env,
+            local_embedding_device=local_embedding_device,
         )
     raise ValueError(f"Unsupported pair selection method: {pair_selection}")
-
 
 def numeric_summary(series: pd.Series, prefix: str) -> dict[str, float | int | pd.NA]:
     values = pd.to_numeric(series, errors="coerce").dropna()
@@ -1118,9 +1579,14 @@ def build_pairs(
     random_state: int,
     pair_selection: str,
     min_retrieval_score: float,
+    embedding_provider: str,
     embedding_model: str,
     embedding_batch_size: int,
     api_key_env: str,
+    local_embedding_device: str,
+    hybrid_embedding_top_k: int,
+    hybrid_bm25_top_k: int,
+    hybrid_rerank_top_k: int,
 ) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
     bridge_cols = [
         "speech_party",
@@ -1160,27 +1626,69 @@ def build_pairs(
         [col for col in manifesto_cols if col in manifesto_df.columns]
     ].rename(columns={"text": "manifesto_text"})
 
-    pairs = merged.merge(manifesto, on="doc_key", how="inner")
-    print(
-        f"Manifesto claim join retained {pairs['plda_doc_id'].nunique():,}/"
-        f"{merged['plda_doc_id'].nunique():,} bridge-matched speeches "
-        f"using {pairs['doc_key'].nunique():,}/{merged['doc_key'].nunique():,} "
-        "linked manifesto documents."
-    )
-    if pairs.empty:
-        raise ValueError("No speech-manifesto pairs remained after joining doc_key.")
+    streamed_candidate_pair_count: int | None = None
+    if pair_selection == "hybrid_embedding_bm25":
+        pairs, streamed_candidate_pair_count = select_hybrid_embedding_bm25_pairs_from_joined(
+            merged=merged,
+            manifesto=manifesto,
+            pairs_per_speech=pairs_per_speech,
+            min_retrieval_score=min_retrieval_score,
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+            embedding_batch_size=embedding_batch_size,
+            api_key_env=api_key_env,
+            local_embedding_device=local_embedding_device,
+            embedding_top_k=hybrid_embedding_top_k,
+            bm25_top_k=hybrid_bm25_top_k,
+            rerank_top_k=hybrid_rerank_top_k,
+        )
+        print(
+            f"Manifesto claim hybrid retrieval retained {pairs['plda_doc_id'].nunique():,}/"
+            f"{merged['plda_doc_id'].nunique():,} bridge-matched speeches "
+            f"using {pairs['doc_key'].nunique():,}/{merged['doc_key'].nunique():,} "
+            f"linked manifesto documents after scoring {streamed_candidate_pair_count:,} "
+            "candidate pairs."
+        )
+        candidate_pairs = pairs.copy()
+    elif pair_selection == "tfidf_topk":
+        pairs, streamed_candidate_pair_count = select_tfidf_topk_pairs_from_joined(
+            merged=merged,
+            manifesto=manifesto,
+            pairs_per_speech=pairs_per_speech,
+            min_retrieval_score=min_retrieval_score,
+        )
+        print(
+            f"Manifesto claim streaming retained {pairs['plda_doc_id'].nunique():,}/"
+            f"{merged['plda_doc_id'].nunique():,} bridge-matched speeches "
+            f"using {pairs['doc_key'].nunique():,}/{merged['doc_key'].nunique():,} "
+            f"linked manifesto documents after scoring {streamed_candidate_pair_count:,} "
+            "candidate pairs."
+        )
+        candidate_pairs = pairs.copy()
+    else:
+        pairs = merged.merge(manifesto, on="doc_key", how="inner")
+        print(
+            f"Manifesto claim join retained {pairs['plda_doc_id'].nunique():,}/"
+            f"{merged['plda_doc_id'].nunique():,} bridge-matched speeches "
+            f"using {pairs['doc_key'].nunique():,}/{merged['doc_key'].nunique():,} "
+            "linked manifesto documents."
+        )
+        if pairs.empty:
+            raise ValueError("No speech-manifesto pairs remained after joining doc_key.")
 
-    candidate_pairs = pairs.copy()
-    pairs = select_pairs(
-        pairs=pairs,
-        pair_selection=pair_selection,
-        pairs_per_speech=pairs_per_speech,
-        random_state=random_state,
-        min_retrieval_score=min_retrieval_score,
-        embedding_model=embedding_model,
-        embedding_batch_size=embedding_batch_size,
-        api_key_env=api_key_env,
-    )
+        candidate_pairs = pairs.copy()
+        pairs = select_pairs(
+            pairs=pairs,
+            pair_selection=pair_selection,
+            pairs_per_speech=pairs_per_speech,
+            random_state=random_state,
+            min_retrieval_score=min_retrieval_score,
+            embedding_provider=embedding_provider,
+            embedding_model=embedding_model,
+            embedding_batch_size=embedding_batch_size,
+            api_key_env=api_key_env,
+            local_embedding_device=local_embedding_device,
+        )
     print(
         f"Selected {len(pairs):,} pair(s) from "
         f"{pairs['plda_doc_id'].nunique():,} speech row(s) and "
@@ -1196,6 +1704,17 @@ def build_pairs(
         pairs_per_speech=pairs_per_speech,
         min_retrieval_score=min_retrieval_score,
     )
+    if streamed_candidate_pair_count is not None:
+        overall = pair_quality["pair_quality_overall"]
+        overall.loc[0, "candidate_pairs"] = streamed_candidate_pair_count
+        overall.loc[0, "candidate_to_selected_pair_retention"] = len(pairs) / max(
+            streamed_candidate_pair_count,
+            1,
+        )
+        overall.loc[
+            0,
+            "candidate_pair_diagnostics_note",
+        ] = "candidate_pairs counted during streaming; detailed candidate diagnostics are based on selected pairs"
 
     pairs = pairs.rename(
         columns={
@@ -1261,17 +1780,58 @@ def resolve_torch_device(torch_module: Any, device_name: str) -> Any:
 def print_torch_device_summary(torch_module: Any, device: Any) -> None:
     cuda_available = bool(torch_module.cuda.is_available())
     mps_available = torch_mps_available(torch_module)
-    print(
-        "Torch device check: "
-        f"cuda_available={cuda_available}, "
-        f"mps_available={mps_available}, "
-        f"selected_device={device}"
-    )
+    selected_device = str(device)
+    style = "bold green" if selected_device.startswith("cuda") else "bold yellow"
+    status = "CUDA ENABLED" if selected_device.startswith("cuda") else "CUDA NOT USED"
+
+    device_detail = ""
     if cuda_available:
         try:
-            print(f"CUDA device: {torch_module.cuda.get_device_name(0)}")
+            device_detail = f" | GPU={torch_module.cuda.get_device_name(0)}"
         except Exception:
-            pass
+            device_detail = " | GPU=<name unavailable>"
+
+    message = (
+        f"{status}: selected_device={selected_device} | "
+        f"cuda_available={cuda_available} | mps_available={mps_available}"
+        f"{device_detail}"
+    )
+    try:
+        from rich.console import Console
+
+        Console().print(message, style=style)
+    except Exception:
+        print(f"[{status}] {message}")
+
+
+_NLI_COMPONENT_CACHE: dict[tuple[str, str], tuple[Any, Any, Any, Any, list[str]]] = {}
+
+
+def load_nli_components(model_name: str, device_name: str) -> tuple[Any, Any, Any, Any, list[str]]:
+    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+    device = resolve_torch_device(torch, device_name)
+    cache_key = (model_name, str(device))
+    cached = _NLI_COMPONENT_CACHE.get(cache_key)
+    if cached is not None:
+        print(f"Reusing NLI tokenizer/model on {device}: {model_name}")
+        return cached
+
+    print_torch_device_summary(torch, device)
+    print(f"Loading NLI tokenizer/model on {device}: {model_name}")
+    load_start = time.perf_counter()
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
+    model.eval()
+    labels = nli_label_order(model)
+    components = (torch, tokenizer, model, device, labels)
+    _NLI_COMPONENT_CACHE[cache_key] = components
+    print(
+        f"Loaded NLI model in {time.perf_counter() - load_start:.1f}s. "
+        f"Labels: {', '.join(labels)}"
+    )
+    return components
 
 
 def classify_pairs(
@@ -1280,21 +1840,7 @@ def classify_pairs(
     batch_size: int,
     device_name: str,
 ) -> pd.DataFrame:
-    import torch
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-    device = resolve_torch_device(torch, device_name)
-    print_torch_device_summary(torch, device)
-    print(f"Loading NLI tokenizer/model on {device}: {model_name}")
-    load_start = time.perf_counter()
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
-    model.eval()
-    labels = nli_label_order(model)
-    print(
-        f"Loaded NLI model in {time.perf_counter() - load_start:.1f}s. "
-        f"Labels: {', '.join(labels)}"
-    )
+    torch, tokenizer, model, device, labels = load_nli_components(model_name, device_name)
 
     rows = []
     total_batches = (len(pairs) + batch_size - 1) // batch_size
@@ -1417,6 +1963,17 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--min-retrieval-score must be <= 1.")
     if args.embedding_batch_size <= 0:
         raise ValueError("--embedding-batch-size must be > 0.")
+    if args.hybrid_embedding_top_k < 0:
+        raise ValueError("--hybrid-embedding-top-k must be >= 0.")
+    if args.hybrid_bm25_top_k < 0:
+        raise ValueError("--hybrid-bm25-top-k must be >= 0.")
+    if args.hybrid_rerank_top_k < 0:
+        raise ValueError("--hybrid-rerank-top-k must be >= 0.")
+    if args.embedding_provider == "local" and args.embedding_model == DEFAULT_EMBEDDING_MODEL:
+        raise ValueError(
+            "--embedding-provider local requires a Hugging Face --embedding-model, such as "
+            "Qwen/Qwen3-Embedding-0.6B, BAAI/bge-m3, or intfloat/multilingual-e5-large."
+        )
     if args.batch_size <= 0:
         raise ValueError("--batch-size must be > 0.")
 
@@ -1431,6 +1988,143 @@ def print_filter_summary(diagnostics: pd.DataFrame) -> None:
     reason_counts = diagnostics["speech_filter_reason"].value_counts(dropna=False)
     for reason, count in reason_counts.items():
         print(f"  {reason}: {count:,}")
+
+
+def available_topic_labels(speech_df: pd.DataFrame) -> list[str]:
+    labels = (
+        speech_df["topic_label"]
+        .dropna()
+        .astype(str)
+        .map(str.strip)
+    )
+    labels = labels[labels != ""]
+    return sorted(labels.unique().tolist())
+
+
+def run_topic(
+    args: argparse.Namespace,
+    country_code: str,
+    topic: str,
+    speech_df: pd.DataFrame,
+    bridge_df: pd.DataFrame,
+    manifesto_df: pd.DataFrame,
+    topic_labels_input: Path | None,
+) -> None:
+    topic_start = time.perf_counter()
+    print("=" * 80)
+    print(f"Running topic: {topic}")
+
+    selected_topic_cols = topic_columns_from_label_file(
+        topic_labels_input,
+        topic,
+        expected_topic_count=len(topic_columns(speech_df)),
+    )
+    if not selected_topic_cols:
+        selected_topic_cols = infer_topic_columns_from_speeches(speech_df, topic)
+    print(f"Selected topic columns for {topic}: {', '.join(selected_topic_cols)}")
+
+    paths = output_paths(args.output_dir, country_code, topic)
+    print("Diagnosing and filtering speech candidates...")
+    diagnostics = diagnose_speeches(
+        speech_df=speech_df,
+        country_code=country_code,
+        topic=topic,
+        selected_topic_cols=selected_topic_cols,
+        min_words=args.min_speech_words,
+        min_topic_mass=args.min_speech_topic_mass,
+        keep_procedural=args.keep_procedural_speeches,
+        strip_procedural=not args.no_strip_procedural_phrases,
+    )
+    diagnostics.to_csv(paths["diagnostics"], index=False)
+    print_filter_summary(diagnostics)
+    print(f"Saved speech diagnostics to: {paths['diagnostics']}")
+
+    print("Sampling speeches...")
+    speeches = sample_speeches(
+        speech_df=diagnostics,
+        topic=topic,
+        sample_size=args.sample_size,
+        sample_per_party=args.sample_per_party,
+        random_state=args.random_state,
+    )
+    print(
+        f"Sampled {len(speeches):,} speech rows from "
+        f"{speeches['party'].nunique():,} parties."
+    )
+    speeches = build_speech_units(
+        speeches=speeches,
+        speech_unit=args.speech_unit,
+        window_size=args.segment_window_size,
+        stride=args.segment_stride,
+        min_segment_words=args.min_segment_words,
+        max_segment_words=args.max_segment_words,
+    )
+    if args.speech_unit == "segment":
+        print(
+            f"Built {len(speeches):,} speech segment unit(s) from "
+            f"{speeches['plda_doc_id'].nunique():,} sampled speeches."
+        )
+
+    print("Filtering manifesto quasi-sentences...")
+    topic_manifesto_df = prepare_manifesto_quasi(
+        manifesto_df=manifesto_df,
+        topic_cols=selected_topic_cols,
+        topic_filter=args.manifesto_topic_filter,
+    )
+    print(
+        f"Retained {len(topic_manifesto_df):,} manifesto quasi-sentences after "
+        f"{args.manifesto_topic_filter!r} filtering."
+    )
+
+    print("Building speech-manifesto pairs...")
+    pairs, pair_quality = build_pairs(
+        speeches=speeches,
+        manifesto_df=topic_manifesto_df,
+        bridge_df=bridge_df,
+        pairs_per_speech=args.pairs_per_speech,
+        random_state=args.random_state,
+        pair_selection=args.pair_selection,
+        min_retrieval_score=args.min_retrieval_score,
+        embedding_provider=args.embedding_provider,
+        embedding_model=args.embedding_model,
+        embedding_batch_size=args.embedding_batch_size,
+        api_key_env=args.api_key_env,
+        local_embedding_device=args.local_embedding_device,
+        hybrid_embedding_top_k=args.hybrid_embedding_top_k,
+        hybrid_bm25_top_k=args.hybrid_bm25_top_k,
+        hybrid_rerank_top_k=args.hybrid_rerank_top_k,
+    )
+    for name, table in pair_quality.items():
+        table.to_csv(paths[name], index=False)
+        print(f"Saved {name.replace('_', ' ')} to: {paths[name]}")
+    print(
+        f"Built {len(pairs):,} NLI pairs from {pairs['plda_doc_id'].nunique():,} "
+        f"speeches, {pairs['party'].nunique():,} parties, "
+        f"and {pairs['doc_key'].nunique():,} manifesto documents."
+    )
+
+    classified = classify_pairs(
+        pairs=pairs,
+        model_name=args.model_name,
+        batch_size=args.batch_size,
+        device_name=args.device,
+    )
+
+    classified.to_csv(paths["pairs"], index=False)
+    summarize_distribution(classified, []).to_csv(paths["overall"], index=False)
+    summarize_distribution(classified, ["party"]).to_csv(paths["party"], index=False)
+    summarize_distribution(classified, ["party", "month"]).to_csv(
+        paths["party_month"],
+        index=False,
+    )
+
+    print(f"Classified {len(classified):,} speech-manifesto pair(s).")
+    print(f"Saved pair-level classifications to: {paths['pairs']}")
+    print(f"Saved overall summary to: {paths['overall']}")
+    print(f"Saved party summary to: {paths['party']}")
+    print(f"Saved party-month summary to: {paths['party_month']}")
+    print(f"Saved speech diagnostics to: {paths['diagnostics']}")
+    print(f"Topic runtime: {time.perf_counter() - topic_start:.1f}s")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1457,111 +2151,47 @@ def main(argv: list[str] | None = None) -> int:
         f"{len(manifesto_df):,} manifesto quasi-sentences."
     )
 
-    selected_topic_cols = topic_columns_from_label_file(
-        topic_labels_input,
-        args.topic,
-        expected_topic_count=len(topic_columns(speech_df)),
-    )
-    if not selected_topic_cols:
-        selected_topic_cols = infer_topic_columns_from_speeches(speech_df, args.topic)
-    print(f"Selected topic columns for {args.topic}: {', '.join(selected_topic_cols)}")
+    requested_topic = args.topic.strip()
+    if requested_topic.lower() == "all":
+        topics = available_topic_labels(speech_df)
+        if not topics:
+            raise ValueError("No topic labels found in speech input.")
+        print(f"Running all topics: {len(topics):,} topic label(s).")
+    else:
+        topics = [requested_topic]
 
-    paths = output_paths(args.output_dir, country_code, args.topic)
-    print("Diagnosing and filtering speech candidates...")
-    diagnostics = diagnose_speeches(
-        speech_df=speech_df,
-        country_code=country_code,
-        topic=args.topic,
-        selected_topic_cols=selected_topic_cols,
-        min_words=args.min_speech_words,
-        min_topic_mass=args.min_speech_topic_mass,
-        keep_procedural=args.keep_procedural_speeches,
-        strip_procedural=not args.no_strip_procedural_phrases,
-    )
-    diagnostics.to_csv(paths["diagnostics"], index=False)
-    print_filter_summary(diagnostics)
-    print(f"Saved speech diagnostics to: {paths['diagnostics']}")
+    failures: list[tuple[str, str]] = []
+    for index, topic in enumerate(topics, start=1):
+        if len(topics) > 1:
+            print(f"Topic {index:,}/{len(topics):,}")
+        try:
+            run_topic(
+                args=args,
+                country_code=country_code,
+                topic=topic,
+                speech_df=speech_df,
+                bridge_df=bridge_df,
+                manifesto_df=manifesto_df,
+                topic_labels_input=topic_labels_input,
+            )
+        except Exception as exc:
+            if len(topics) == 1:
+                raise
+            failures.append((topic, str(exc)))
+            print(f"Topic {topic!r} failed: {exc}")
 
-    print("Sampling speeches...")
-    speeches = sample_speeches(
-        speech_df=diagnostics,
-        topic=args.topic,
-        sample_size=args.sample_size,
-        sample_per_party=args.sample_per_party,
-        random_state=args.random_state,
-    )
-    print(
-        f"Sampled {len(speeches):,} speech rows from "
-        f"{speeches['party'].nunique():,} parties."
-    )
-    speeches = build_speech_units(
-        speeches=speeches,
-        speech_unit=args.speech_unit,
-        window_size=args.segment_window_size,
-        stride=args.segment_stride,
-        min_segment_words=args.min_segment_words,
-        max_segment_words=args.max_segment_words,
-    )
-    if args.speech_unit == "segment":
-        print(
-            f"Built {len(speeches):,} speech segment unit(s) from "
-            f"{speeches['plda_doc_id'].nunique():,} sampled speeches."
-        )
-    print("Filtering manifesto quasi-sentences...")
-    manifesto_df = prepare_manifesto_quasi(
-        manifesto_df=manifesto_df,
-        topic_cols=selected_topic_cols,
-        topic_filter=args.manifesto_topic_filter,
-    )
-    print(
-        f"Retained {len(manifesto_df):,} manifesto quasi-sentences after "
-        f"{args.manifesto_topic_filter!r} filtering."
-    )
-    print("Building speech-manifesto pairs...")
-    pairs, pair_quality = build_pairs(
-        speeches=speeches,
-        manifesto_df=manifesto_df,
-        bridge_df=bridge_df,
-        pairs_per_speech=args.pairs_per_speech,
-        random_state=args.random_state,
-        pair_selection=args.pair_selection,
-        min_retrieval_score=args.min_retrieval_score,
-        embedding_model=args.embedding_model,
-        embedding_batch_size=args.embedding_batch_size,
-        api_key_env=args.api_key_env,
-    )
-    for name, table in pair_quality.items():
-        table.to_csv(paths[name], index=False)
-        print(f"Saved {name.replace('_', ' ')} to: {paths[name]}")
-    print(
-        f"Built {len(pairs):,} NLI pairs from {pairs['plda_doc_id'].nunique():,} "
-        f"speeches, {pairs['party'].nunique():,} parties, "
-        f"and {pairs['doc_key'].nunique():,} manifesto documents."
-    )
-    classified = classify_pairs(
-        pairs=pairs,
-        model_name=args.model_name,
-        batch_size=args.batch_size,
-        device_name=args.device,
-    )
+    if failures:
+        print("=" * 80)
+        print(f"Completed with {len(failures):,}/{len(topics):,} topic failure(s):")
+        for topic, message in failures:
+            print(f"  {topic}: {message}")
+        print(f"Total runtime: {time.perf_counter() - run_start:.1f}s")
+        return 1
 
-    classified.to_csv(paths["pairs"], index=False)
-    summarize_distribution(classified, []).to_csv(paths["overall"], index=False)
-    summarize_distribution(classified, ["party"]).to_csv(paths["party"], index=False)
-    summarize_distribution(classified, ["party", "month"]).to_csv(
-        paths["party_month"],
-        index=False,
-    )
-
-    print(f"Classified {len(classified):,} speech-manifesto pair(s).")
-    print(f"Saved pair-level classifications to: {paths['pairs']}")
-    print(f"Saved overall summary to: {paths['overall']}")
-    print(f"Saved party summary to: {paths['party']}")
-    print(f"Saved party-month summary to: {paths['party_month']}")
-    print(f"Saved speech diagnostics to: {paths['diagnostics']}")
+    print("=" * 80)
+    print(f"Completed {len(topics):,} topic run(s) successfully.")
     print(f"Total runtime: {time.perf_counter() - run_start:.1f}s")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
