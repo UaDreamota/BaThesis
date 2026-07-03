@@ -1,0 +1,10 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+A,A,A,party,298089,mapped,manual_alias,12320,Labour Party,Ap,
+H,H,H,party,245562,mapped,manual_alias,12620,Conservative Party,H,
+FrP,FRP,FRP,party,186367,mapped,manual_alias,12951,Progress Party,FrP,
+Sp,SP,SP,party,132356,mapped,manual_alias,12810,Centre Party,Sp,
+SV,SV,SV,party,123831,mapped,manual_alias,12221,Socialist Left Party,SV,
+KrF,KRF,KRF,party,119135,mapped,manual_alias,12520,Christian People's Party,KrF,
+V,V,V,party,76128,mapped,manual_alias,12420,Liberal Party,V,
+MDG,MDG,MDG,party,6649,mapped,manual_alias,12110,Green Party,MDG,
+R,R,R,party,6327,mapped,manual_alias,12230,Red Party,,

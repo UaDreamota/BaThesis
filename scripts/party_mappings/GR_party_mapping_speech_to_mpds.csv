@@ -1,0 +1,15 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+ΣΥ.ΡΙΖ.Α.,SYRIZA,SYRIZA,party,285007,mapped,manual_alias,34212,Coalition of the Radical Left,SYRIZA,
+Ν.Δ.,ND,ND,party,262882,mapped,manual_alias,34511,New Democracy,ND,
+Κ.Κ.Ε.,KKE,KKE,party,75705,mapped,manual_alias,34210,Communist Party of Greece,KKE,
+ΔΗ.ΣΥ.,DISY,DISY,party,58085,mapped,manual_alias,34313,Panhellenic Socialist Movement,PASOK,"Democratic Alignment treated as PASOK lineage; review if using Greek party-level results."
+ΚΙΝ.ΑΛ.,KINAL,KINAL,party,47732,mapped,manual_alias,34315,Movement for Change,KINAL,
+Χ.Α.,XA,XA,party,40662,mapped,manual_alias,34720,Golden Dawn,XA,
+Ε.Λ.,EL,EL,party,33026,mapped,manual_alias,34711,Greek Solution,EL,
+Τ.Π.,TP,TP,party,32484,mapped,manual_alias,34340,The River,,
+ΑΝ.ΕΛ.,ANEL,ANEL,party,30803,mapped,manual_alias,34730,Independent Greeks,ANEL,
+Ε.Κ.,EK,EK,party,27488,mapped,manual_alias,34410,Union of Centrists,EK,
+ΜέΡΑ25,MERA25,MERA25,party,26690,mapped,manual_alias,34215,European Realistic Disobedience Front,MeRA25,
+ΠΑ.ΣΟ.Κ.,PASOK,PASOK,party,5961,mapped,manual_alias,34313,Panhellenic Socialist Movement,PASOK,
+ΔΗΜ.ΑΡ,DIMAR,DIMAR,party,4897,mapped,manual_alias,34213,Democratic Left,DIMAR,
+ΛΑ.Ε.,LAE,LAE,party,74,mapped,manual_alias,34214,Popular Unity,LAE,

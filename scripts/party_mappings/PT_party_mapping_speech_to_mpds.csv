@@ -1,0 +1,11 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+PS,PS,PS,party,140429,mapped,manual_alias,35311,Socialist Party,PS,
+PSD,PSD,PSD,party,104389,mapped,manual_alias,35313,Social Democratic Party,PSD,
+PCP,PCP,PCP,party,66094,mapped,manual_alias,35220,Portuguese Communist Party,PCP,
+BE,BE,BE,party,59029,mapped,manual_alias,35211,Left Bloc,BE,
+CDS-PP,CDS-PP,CDS-PP,party,52050,mapped,manual_alias,35520,Social Democratic Center-Popular Party,CDS-PP,
+CH,CH,CH,party,25380,mapped,manual_alias,35720,Enough,,
+PEV,PEV,PEV,party,18510,mapped,manual_alias,35110,Ecologist Party 'The Greens',PEV,
+PAN,PAN,PAN,party,16656,mapped,manual_alias,35120,People-Animals-Nature,PAN,
+IL,IL,IL,party,16630,mapped,manual_alias,35410,Liberal Iniciative,IL,
+L,L,L,party,4913,mapped,manual_alias,35130,Free,L,

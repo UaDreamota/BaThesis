@@ -1,0 +1,12 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+S,S,S,party,39981,mapped,manual_alias,13320,Social Democratic Party,SD,
+V,V,V,party,33014,mapped,manual_alias,13420,Liberals,V,
+DF,DF,DF,party,25613,mapped,manual_alias,13720,Danish People's Party,DF,
+EL,EL,EL,party,23184,mapped,manual_alias,13229,Red-Green Unity List,EL,
+SF,SF,SF,party,14104,mapped,manual_alias,13230,Socialist People's Party,SF,
+LA,LA,LA,party,12617,mapped,manual_alias,13001,Liberal Alliance,LA,
+RV,RV,RV,party,11933,mapped,manual_alias,13410,Danish Social-Liberal Party,RV,
+KF,KF,KF,party,11507,mapped,manual_alias,13620,Conservative People's Party,KF,
+ALT,ALT,ALT,party,8650,mapped,manual_alias,13110,Alternativ,ALT,
+NB,NB,NB,party,5058,mapped,manual_alias,13730,The New Right,NB,
+KD,KD,KD,party,678,mapped,manual_alias,13520,Christian Democrats,KD,

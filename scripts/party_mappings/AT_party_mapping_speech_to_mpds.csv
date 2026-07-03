@@ -1,0 +1,11 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+ÖVP,OVP,OVP,party,108154,mapped,manual_alias,42520,Austrian People's Party,ÖVP,
+SPÖ,SPO,SPO,party,99399,mapped,manual_alias,42320,Austrian Social Democratic Party,SPÖ,
+FPÖ,FPO,FPO,party,79877,mapped,manual_alias,42420,Austrian Freedom Party,FPÖ,
+Grüne,GRUNE,GRUNE,party,32614,mapped,manual_alias,42110,The Greens,GRÜNE,
+GRÜNE,GRUNE,GRUNE,party,19954,mapped,manual_alias,42110,The Greens,GRÜNE,
+NEOS,NEOS,NEOS,party,17097,mapped,manual_alias,42430,The New Austria and Liberal Forum,NEOS,
+BZÖ,BZO,BZO,party,12992,mapped,manual_alias,42710,Alliance for the Future of Austria,BZÖ,
+LIF,LIF,LIF,party,5874,mapped,manual_alias,42421,Liberal Forum,LIF,
+STRONACH,STRONACH,STRONACH,party,4991,mapped,manual_alias,42951,Team Stronach for Austria,TS,
+JETZT,JETZT,JETZT,party,2139,mapped,manual_alias,42120,Peter Pilz List,PILZ,

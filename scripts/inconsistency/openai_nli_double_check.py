@@ -4,6 +4,7 @@ import argparse
 import csv
 import json
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -97,6 +98,23 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--limit", default=0, type=int, help="Maximum rows to process; 0 means all.")
+    parser.add_argument(
+        "--sample-per-nli-label",
+        default=0,
+        type=int,
+        help=(
+            "Balanced reservoir sample size per existing nli_label before calling OpenAI. "
+            "Use 300 for 300 contradiction, 300 entailment, and 300 neutral rows. "
+            "Use 0 to process input order normally."
+        ),
+    )
+    parser.add_argument(
+        "--sample-labels",
+        nargs="*",
+        default=["contradiction", "entailment", "neutral"],
+        help="Existing nli_label strata to sample when --sample-per-nli-label is > 0.",
+    )
+    parser.add_argument("--sample-random-state", default=42, type=int)
     parser.add_argument("--sleep", default=0.2, type=float, help="Seconds to sleep between requests.")
     parser.add_argument("--max-retries", default=4, type=int)
     parser.add_argument(
@@ -131,6 +149,76 @@ def load_rows(path: Path) -> list[dict[str, str]]:
             raise ValueError(f"{path} is missing required columns: {sorted(missing)}")
         rows = list(reader)
     return rows
+
+def load_fieldnames(path: Path) -> list[str]:
+    if not path.exists():
+        raise FileNotFoundError(f"Input CSV not found: {path}")
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = list(reader.fieldnames or [])
+    required = {"speech_text", "manifesto_text"}
+    missing = required - set(fieldnames)
+    if missing:
+        raise ValueError(f"{path} is missing required columns: {sorted(missing)}")
+    return fieldnames
+
+
+def load_balanced_nli_sample(
+    path: Path,
+    labels: list[str],
+    per_label: int,
+    random_state: int,
+) -> tuple[list[dict[str, str]], list[str], dict[str, int]]:
+    if per_label <= 0:
+        rows = load_rows(path)
+        if not rows:
+            raise ValueError(f"No rows found in {path}")
+        return rows, list(rows[0].keys()), {}
+
+    allowed_labels = [label.strip().lower() for label in labels if label.strip()]
+    if not allowed_labels:
+        raise ValueError("--sample-labels must contain at least one non-empty label.")
+    allowed = set(allowed_labels)
+    rng = random.Random(random_state)
+    reservoirs: dict[str, list[dict[str, str]]] = {label: [] for label in allowed_labels}
+    seen: dict[str, int] = {label: 0 for label in allowed_labels}
+
+    fieldnames = load_fieldnames(path)
+    if "nli_label" not in fieldnames:
+        raise ValueError("--sample-per-nli-label requires an nli_label column in the input.")
+
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            label = str(row.get("nli_label", "")).strip().lower()
+            if label not in allowed:
+                continue
+            seen[label] += 1
+            reservoir = reservoirs[label]
+            if len(reservoir) < per_label:
+                reservoir.append(row)
+                continue
+            replacement_index = rng.randrange(seen[label])
+            if replacement_index < per_label:
+                reservoir[replacement_index] = row
+
+    missing = [label for label, count in seen.items() if count == 0]
+    if missing:
+        raise ValueError(f"No rows found for sampled nli_label(s): {missing}")
+
+    sampled: list[dict[str, str]] = []
+    for label in allowed_labels:
+        sampled.extend(reservoirs[label])
+    rng.shuffle(sampled)
+    print(
+        "Balanced NLI sample: "
+        + ", ".join(
+            f"{label}={len(reservoirs[label]):,}/{seen[label]:,}"
+            for label in allowed_labels
+        ),
+        flush=True,
+    )
+    return sampled, fieldnames, seen
 
 
 def load_completed_pair_ids(path: Path) -> set[str]:
@@ -307,6 +395,10 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("--sleep must be >= 0.")
     if args.max_retries < 0:
         raise ValueError("--max-retries must be >= 0.")
+    if args.sample_per_nli_label < 0:
+        raise ValueError("--sample-per-nli-label must be >= 0.")
+    if args.sample_per_nli_label > 0 and args.nli_labels is not None:
+        raise ValueError("Use either --sample-per-nli-label or --nli-labels, not both.")
 
     api_key = os.getenv(args.api_key_env) or os.getenv("OPEN_API_KEY")
     if not api_key:
@@ -320,10 +412,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.overwrite and output_path.exists():
         output_path.unlink()
 
-    rows = load_rows(args.input)
+    rows, input_fieldnames, _seen_counts = load_balanced_nli_sample(
+        path=args.input,
+        labels=args.sample_labels,
+        per_label=args.sample_per_nli_label,
+        random_state=args.sample_random_state,
+    )
     if not rows:
         raise ValueError(f"No rows found in {args.input}")
-    fieldnames = output_fieldnames(list(rows[0].keys()))
+    fieldnames = output_fieldnames(input_fieldnames)
     validate_existing_output_schema(output_path, fieldnames)
 
     label_filter = (

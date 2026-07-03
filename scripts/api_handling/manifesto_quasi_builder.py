@@ -30,13 +30,24 @@ MPDS_KEY = "MPDS2025a"
 CORPUS_VER = "2025-1"
 
 COUNTRY_NAME_BY_CODE: dict[str, str] = {
+    "AT": "Austria",
+    "BE": "Belgium",
     "CZ": "Czech Republic",
+    "DK": "Denmark",
     "EE": "Estonia",
+    "ES": "Spain",
+    "FI": "Finland",
     "GB": "United Kingdom",
+    "GR": "Greece",
     "HU": "Hungary",
+    "IT": "Italy",
     "LV": "Latvia",
     "LT": "Lithuania",
+    "NL": "Netherlands",
+    "NO": "Norway",
     "PL": "Poland",
+    "PT": "Portugal",
+    "SE": "Sweden",
     "SI": "Slovenia",
     "UA": "Ukraine",
 }
@@ -53,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--country",
         required=True,
         type=str,
-        help="Country code, for example: CZ GB EE LV LT UA HU",
+        help="Country code, for example: AT BE CZ DK EE ES FI GB GR HU IT LT LV NL NO PL PT SE SI UA",
     )
     parser.add_argument(
         "--output-dir",

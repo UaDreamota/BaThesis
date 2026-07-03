@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
+import sqlite3
 import re
 import time
 from pathlib import Path
@@ -19,6 +21,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 TEST_OUTPUT_DIR = BASE_DIR / "outputs" / "test_speeches"
 MANIFESTO_INPUT_DIR = BASE_DIR / "outputs" / "manifesto_quasi_sentences"
 DEFAULT_OUTPUT_DIR = TEST_OUTPUT_DIR / "nli_inconsistency"
+DEFAULT_EMBEDDING_CACHE_DB = TEST_OUTPUT_DIR / "embedding_cache" / "embeddings.sqlite"
 DEFAULT_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
 DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
 OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings"
@@ -207,6 +210,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Torch device for local embedding models.",
     )
     parser.add_argument(
+        "--embedding-cache-db",
+        default=DEFAULT_EMBEDDING_CACHE_DB,
+        type=Path,
+        help="SQLite cache for OpenAI/local embeddings. Use with --no-embedding-disk-cache to disable.",
+    )
+    parser.add_argument(
+        "--embedding-disk-cache",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Persist and reuse embeddings across script runs. Enabled by default.",
+    )
+    parser.add_argument(
         "--hybrid-embedding-top-k",
         default=50,
         type=int,
@@ -237,6 +252,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--random-state", default=42, type=int)
     parser.add_argument("--batch-size", default=8, type=int)
+    parser.add_argument(
+        "--nli-max-length",
+        default=512,
+        type=int,
+        help="Maximum tokenized sequence length for NLI classification.",
+    )
+    parser.add_argument(
+        "--nli-checkpoint-interval",
+        default=50000,
+        type=int,
+        help=(
+            "Write resumable NLI classification checkpoints every N classified pairs. "
+            "Use 0 to disable checkpointing."
+        ),
+    )
     parser.add_argument("--model-name", default=DEFAULT_MODEL_NAME, type=str)
     parser.add_argument(
         "--device",
@@ -927,6 +957,93 @@ _EMBEDDING_CACHE: dict[tuple[str, str, str, str], np.ndarray] = {}
 _LOCAL_EMBEDDING_COMPONENT_CACHE: dict[tuple[str, str], tuple[Any, Any, Any, Any]] = {}
 
 
+def embedding_text_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def init_embedding_cache_db(cache_db: Path) -> None:
+    cache_db.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(cache_db) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS embeddings (
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                role TEXT NOT NULL,
+                text_hash TEXT NOT NULL,
+                text TEXT NOT NULL,
+                dim INTEGER NOT NULL,
+                dtype TEXT NOT NULL,
+                vector BLOB NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (provider, model, role, text_hash)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_embeddings_lookup "
+            "ON embeddings(provider, model, role, text_hash)"
+        )
+
+
+def vector_to_blob(vector: np.ndarray) -> tuple[bytes, int, str]:
+    arr = np.asarray(vector, dtype=np.float32)
+    return arr.tobytes(), int(arr.size), str(arr.dtype)
+
+
+def vector_from_blob(blob: bytes, dtype: str, dim: int) -> np.ndarray:
+    return np.frombuffer(blob, dtype=np.dtype(dtype), count=dim).astype(float)
+
+
+def load_embedding_from_disk_cache(
+    cache_db: Path,
+    provider: str,
+    model: str,
+    role: str,
+    text: str,
+) -> np.ndarray | None:
+    if not cache_db.exists():
+        return None
+    text_hash = embedding_text_hash(text)
+    with sqlite3.connect(cache_db) as conn:
+        row = conn.execute(
+            """
+            SELECT vector, dtype, dim
+            FROM embeddings
+            WHERE provider = ? AND model = ? AND role = ? AND text_hash = ?
+            """,
+            (provider, model, role, text_hash),
+        ).fetchone()
+    if row is None:
+        return None
+    return vector_from_blob(blob=row[0], dtype=row[1], dim=int(row[2]))
+
+
+def save_embeddings_to_disk_cache(
+    cache_db: Path,
+    provider: str,
+    model: str,
+    role: str,
+    items: list[tuple[str, np.ndarray]],
+) -> None:
+    if not items:
+        return
+    init_embedding_cache_db(cache_db)
+    rows = []
+    for text, vector in items:
+        blob, dim, dtype = vector_to_blob(vector)
+        rows.append((provider, model, role, embedding_text_hash(text), text, dim, dtype, blob))
+    with sqlite3.connect(cache_db) as conn:
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO embeddings
+                (provider, model, role, text_hash, text, dim, dtype, vector)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+
+
 def embedding_input_text(text: str, model: str, role: str) -> str:
     stripped = text.strip()
     model_lower = model.lower()
@@ -995,16 +1112,36 @@ def embed_unique_texts(
     batch_size: int,
     role: str,
     local_device: str,
+    cache_db: Path,
+    use_disk_cache: bool,
 ) -> dict[str, np.ndarray]:
     unique_texts = list(dict.fromkeys(text.strip() for text in texts if text.strip()))
     embeddings: dict[str, np.ndarray] = {}
     uncached_texts = []
+    memory_hits = 0
+    disk_hits = 0
+
     for text in unique_texts:
-        cached = _EMBEDDING_CACHE.get((provider, model, role, text))
-        if cached is None:
-            uncached_texts.append(text)
-        else:
+        cache_key = (provider, model, role, text)
+        cached = _EMBEDDING_CACHE.get(cache_key)
+        if cached is not None:
             embeddings[text] = cached
+            memory_hits += 1
+            continue
+        if use_disk_cache:
+            disk_cached = load_embedding_from_disk_cache(cache_db, provider, model, role, text)
+            if disk_cached is not None:
+                embeddings[text] = disk_cached
+                _EMBEDDING_CACHE[cache_key] = disk_cached
+                disk_hits += 1
+                continue
+        uncached_texts.append(text)
+
+    if memory_hits or disk_hits:
+        print(
+            f"Embedding cache hits ({provider}, {role}): "
+            f"memory={memory_hits:,}, disk={disk_hits:,}, misses={len(uncached_texts):,}."
+        )
 
     total_batches = (len(uncached_texts) + batch_size - 1) // batch_size
     api_key = openai_api_key(api_key_env) if provider == "openai" and uncached_texts else ""
@@ -1012,21 +1149,24 @@ def embed_unique_texts(
         batch = uncached_texts[start : start + batch_size]
         model_inputs = [embedding_input_text(text, model, role) for text in batch]
         if provider == "openai":
-            vectors = [np.array(vector, dtype=float) for vector in embed_text_batch(
-                model_inputs,
-                model=model,
-                api_key=api_key,
-            )]
+            vectors = [
+                np.array(vector, dtype=float)
+                for vector in embed_text_batch(model_inputs, model=model, api_key=api_key)
+            ]
         elif provider == "local":
             vectors = embed_local_text_batch(model_inputs, model=model, device_name=local_device)
         else:
             raise ValueError(f"Unsupported embedding provider: {provider}")
 
+        cache_items: list[tuple[str, np.ndarray]] = []
         for text, vector in zip(batch, vectors, strict=True):
             norm = np.linalg.norm(vector)
             normalized = vector / norm if norm else vector
             embeddings[text] = normalized
             _EMBEDDING_CACHE[(provider, model, role, text)] = normalized
+            cache_items.append((text, normalized))
+        if use_disk_cache:
+            save_embeddings_to_disk_cache(cache_db, provider, model, role, cache_items)
         print(
             f"Embedding batch {batch_i:,}/{total_batches:,} ({provider}, {role}): "
             f"{min(start + len(batch), len(uncached_texts)):,}/{len(uncached_texts):,} uncached texts."
@@ -1034,7 +1174,6 @@ def embed_unique_texts(
     if unique_texts and not uncached_texts:
         print(f"Reused {len(unique_texts):,} cached embedding text(s) ({provider}, {role}).")
     return embeddings
-
 
 def embed_query_and_passage_texts(
     query_texts: list[str],
@@ -1044,6 +1183,8 @@ def embed_query_and_passage_texts(
     api_key_env: str,
     batch_size: int,
     local_device: str,
+    cache_db: Path,
+    use_disk_cache: bool,
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
     query_embeddings = embed_unique_texts(
         texts=query_texts,
@@ -1053,6 +1194,8 @@ def embed_query_and_passage_texts(
         batch_size=batch_size,
         role="query",
         local_device=local_device,
+        cache_db=cache_db,
+        use_disk_cache=use_disk_cache,
     )
     passage_embeddings = embed_unique_texts(
         texts=passage_texts,
@@ -1062,6 +1205,8 @@ def embed_query_and_passage_texts(
         batch_size=batch_size,
         role="passage",
         local_device=local_device,
+        cache_db=cache_db,
+        use_disk_cache=use_disk_cache,
     )
     return query_embeddings, passage_embeddings
 
@@ -1074,6 +1219,8 @@ def select_embedding_topk_pairs(
     embedding_batch_size: int,
     api_key_env: str,
     local_embedding_device: str,
+    embedding_cache_db: Path,
+    embedding_disk_cache: bool,
 ) -> pd.DataFrame:
     query_texts = pairs["text"].fillna("").astype(str).str.strip().tolist()
     passage_texts = pairs["manifesto_text"].fillna("").astype(str).str.strip().tolist()
@@ -1085,6 +1232,8 @@ def select_embedding_topk_pairs(
         api_key_env=api_key_env,
         batch_size=embedding_batch_size,
         local_device=local_embedding_device,
+        cache_db=embedding_cache_db,
+        use_disk_cache=embedding_disk_cache,
     )
 
     selected_parts = []
@@ -1197,6 +1346,8 @@ def select_hybrid_embedding_bm25_pairs_from_joined(
     embedding_batch_size: int,
     api_key_env: str,
     local_embedding_device: str,
+    embedding_cache_db: Path,
+    embedding_disk_cache: bool,
     embedding_top_k: int,
     bm25_top_k: int,
     rerank_top_k: int,
@@ -1228,6 +1379,8 @@ def select_hybrid_embedding_bm25_pairs_from_joined(
         api_key_env=api_key_env,
         batch_size=embedding_batch_size,
         local_device=local_embedding_device,
+        cache_db=embedding_cache_db,
+        use_disk_cache=embedding_disk_cache,
     )
 
     for unit_i, (_, unit_rows) in enumerate(merged.groupby(group_col, sort=False), start=1):
@@ -1584,6 +1737,8 @@ def build_pairs(
     embedding_batch_size: int,
     api_key_env: str,
     local_embedding_device: str,
+    embedding_cache_db: Path,
+    embedding_disk_cache: bool,
     hybrid_embedding_top_k: int,
     hybrid_bm25_top_k: int,
     hybrid_rerank_top_k: int,
@@ -1638,6 +1793,8 @@ def build_pairs(
             embedding_batch_size=embedding_batch_size,
             api_key_env=api_key_env,
             local_embedding_device=local_embedding_device,
+            embedding_cache_db=embedding_cache_db,
+            embedding_disk_cache=embedding_disk_cache,
             embedding_top_k=hybrid_embedding_top_k,
             bm25_top_k=hybrid_bm25_top_k,
             rerank_top_k=hybrid_rerank_top_k,
@@ -1688,6 +1845,8 @@ def build_pairs(
             embedding_batch_size=embedding_batch_size,
             api_key_env=api_key_env,
             local_embedding_device=local_embedding_device,
+            embedding_cache_db=embedding_cache_db,
+            embedding_disk_cache=embedding_disk_cache,
         )
     print(
         f"Selected {len(pairs):,} pair(s) from "
@@ -1834,24 +1993,71 @@ def load_nli_components(model_name: str, device_name: str) -> tuple[Any, Any, An
     return components
 
 
+def load_nli_checkpoint(path: Path, expected_labels: list[str]) -> list[dict[str, float | str]]:
+    if not path.exists():
+        return []
+    checkpoint = pd.read_csv(path, low_memory=False)
+    expected_columns = [f"nli_prob_{label}" for label in expected_labels] + ["nli_label"]
+    missing = [column for column in expected_columns if column not in checkpoint.columns]
+    if missing:
+        raise ValueError(
+            f"NLI checkpoint has incompatible schema: {path}. Missing columns: {missing}"
+        )
+    checkpoint = checkpoint[expected_columns].copy()
+    rows = checkpoint.to_dict("records")
+    print(f"Loaded {len(rows):,} NLI checkpoint row(s) from: {path}")
+    return rows
+
+
+def append_nli_checkpoint(path: Path, rows: list[dict[str, float | str]]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_df = pd.DataFrame(rows)
+    checkpoint_df.to_csv(path, mode="a", header=not path.exists(), index=False)
+
+
 def classify_pairs(
     pairs: pd.DataFrame,
     model_name: str,
     batch_size: int,
     device_name: str,
+    max_length: int,
+    checkpoint_path: Path | None,
+    checkpoint_interval: int,
 ) -> pd.DataFrame:
     torch, tokenizer, model, device, labels = load_nli_components(model_name, device_name)
 
-    rows = []
+    rows: list[dict[str, float | str]] = []
+    checkpoint_buffer: list[dict[str, float | str]] = []
+    if checkpoint_path is not None:
+        rows = load_nli_checkpoint(checkpoint_path, labels)
+        if len(rows) > len(pairs):
+            raise ValueError(
+                f"NLI checkpoint has more rows than current pairs: {checkpoint_path} "
+                f"({len(rows):,} > {len(pairs):,}). Remove it or use a different output path."
+            )
+
     total_batches = (len(pairs) + batch_size - 1) // batch_size
+    completed_pairs = len(rows)
+    if completed_pairs:
+        completed_batches = completed_pairs // batch_size
+        print(
+            f"Resuming NLI classification after {completed_pairs:,}/{len(pairs):,} "
+            f"pairs ({completed_batches:,}/{total_batches:,} full batches)."
+        )
     infer_start = time.perf_counter()
+    last_checkpoint_at = completed_pairs
     with torch.no_grad():
         for batch_i, start in enumerate(range(0, len(pairs), batch_size), start=1):
+            if start < completed_pairs:
+                continue
             batch = pairs.iloc[start : start + batch_size]
             encoded = tokenizer(
                 batch["manifesto_text"].astype(str).tolist(),
                 batch["speech_text"].astype(str).tolist(),
                 truncation=True,
+                max_length=max_length,
                 padding=True,
                 return_tensors="pt",
             )
@@ -1861,10 +2067,22 @@ def classify_pairs(
                 row = {f"nli_prob_{label}": float(value) for label, value in zip(labels, prob)}
                 row["nli_label"] = max(row, key=row.get).replace("nli_prob_", "")
                 rows.append(row)
+                checkpoint_buffer.append(row)
+
+            pairs_done = len(rows)
+            if (
+                checkpoint_path is not None
+                and checkpoint_interval > 0
+                and pairs_done - last_checkpoint_at >= checkpoint_interval
+            ):
+                append_nli_checkpoint(checkpoint_path, checkpoint_buffer)
+                checkpoint_buffer.clear()
+                last_checkpoint_at = pairs_done
+                print(f"Saved NLI checkpoint at {pairs_done:,}/{len(pairs):,}: {checkpoint_path}")
+
             if batch_i == 1 or batch_i % 10 == 0 or batch_i == total_batches:
                 elapsed = time.perf_counter() - infer_start
-                pairs_done = min(start + len(batch), len(pairs))
-                seconds_per_pair = elapsed / max(pairs_done, 1)
+                seconds_per_pair = elapsed / max(pairs_done - completed_pairs, 1)
                 remaining_pairs = len(pairs) - pairs_done
                 eta = remaining_pairs * seconds_per_pair
                 print(
@@ -1872,6 +2090,10 @@ def classify_pairs(
                     f"{pairs_done:,}/{len(pairs):,} pairs done, "
                     f"elapsed={elapsed:.1f}s, eta={eta:.1f}s"
                 )
+
+    if checkpoint_path is not None and checkpoint_buffer:
+        append_nli_checkpoint(checkpoint_path, checkpoint_buffer)
+        print(f"Saved final NLI checkpoint at {len(rows):,}/{len(pairs):,}: {checkpoint_path}")
 
     return pd.concat([pairs.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
@@ -1976,6 +2198,10 @@ def validate_args(args: argparse.Namespace) -> None:
         )
     if args.batch_size <= 0:
         raise ValueError("--batch-size must be > 0.")
+    if args.nli_max_length <= 0:
+        raise ValueError("--nli-max-length must be > 0.")
+    if args.nli_checkpoint_interval < 0:
+        raise ValueError("--nli-checkpoint-interval must be >= 0.")
 
 
 def print_filter_summary(diagnostics: pd.DataFrame) -> None:
@@ -2090,6 +2316,8 @@ def run_topic(
         embedding_batch_size=args.embedding_batch_size,
         api_key_env=args.api_key_env,
         local_embedding_device=args.local_embedding_device,
+        embedding_cache_db=args.embedding_cache_db,
+        embedding_disk_cache=args.embedding_disk_cache,
         hybrid_embedding_top_k=args.hybrid_embedding_top_k,
         hybrid_bm25_top_k=args.hybrid_bm25_top_k,
         hybrid_rerank_top_k=args.hybrid_rerank_top_k,
@@ -2103,11 +2331,15 @@ def run_topic(
         f"and {pairs['doc_key'].nunique():,} manifesto documents."
     )
 
+    nli_checkpoint_path = paths["pairs"].with_name(f"{paths['pairs'].stem}_checkpoint.csv")
     classified = classify_pairs(
         pairs=pairs,
         model_name=args.model_name,
         batch_size=args.batch_size,
         device_name=args.device,
+        max_length=args.nli_max_length,
+        checkpoint_path=nli_checkpoint_path if args.nli_checkpoint_interval else None,
+        checkpoint_interval=args.nli_checkpoint_interval,
     )
 
     classified.to_csv(paths["pairs"], index=False)

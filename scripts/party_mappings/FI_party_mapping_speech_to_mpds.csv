@@ -1,0 +1,11 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+SDP,SDP,SDP,party,62316,mapped,manual_alias,14320,Finnish Social Democrats,SSDP,
+KESK,KESK,KESK,party,60400,mapped,manual_alias,14810,Centre Party,KESK,
+PS,PS,PS,party,54376,mapped,manual_alias,14820,True Finns,PS,
+KOK,KOK,KOK,party,53968,mapped,manual_alias,14620,National Coalition,KK,
+VIHR,VIHR,VIHR,party,22988,mapped,manual_alias,14110,Green Union,VL,
+VAS,VAS,VAS,party,21491,mapped,manual_alias,14223,Left Wing Alliance,VAS,
+KD,KD,KD,party,12733,mapped,manual_alias,14520,Christian Democrats,KD,
+RKP,RKP,RKP,party,6993,mapped,manual_alias,14901,Swedish People's Party,RKP/SFP,
+SIN,SIN,SIN,party,6638,mapped,manual_alias,14820,True Finns,PS,"Blue Reform split from True Finns; mapped to PS as the closest MPDS lineage. Review before final analysis."
+LIIK,LIIK,LIIK,party,610,mapped,manual_alias,14440,Movement Now,LIIK,

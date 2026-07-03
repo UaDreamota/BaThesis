@@ -1,0 +1,9 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+S,S,S,party,155496,mapped,manual_alias,11320,Social Democratic Labour Party,SAP,
+M,M,M,party,101996,mapped,manual_alias,11620,Moderate Coalition Party,MSP,
+SD,SD,SD,party,56323,mapped,manual_alias,11710,Sweden Democrats,SD,
+MP,MP,MP,party,52218,mapped,manual_alias,11110,Green Ecology Party,MP,
+V,V,V,party,48721,mapped,manual_alias,11220,Left Party,V,
+C,C,C,party,40219,mapped,manual_alias,11810,Centre Party,CP,
+KD,KD,KD,party,40073,mapped,manual_alias,11520,Christian Democrats,Kd,
+L,L,L,party,33824,mapped,manual_alias,11420,Liberals,L,
