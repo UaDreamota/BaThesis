@@ -1,0 +1,24 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+DK,DK,DK,party,16697,mapped,manual_alias,86221.0,Democratic Coalition,DK,
+DK-frakció,DK-FRAKCIÓ,DKFRAKCIO,faction,227,mapped,manual_alias,86221.0,Democratic Coalition,DK,Faction label mapped to Democratic Coalition.
+EGYÜTT,EGYÜTT,EGYUTT,party,1190,mapped,manual_alias,86340.0,Together 2014 -Dialogue for Hungary Electoral Alliance,E14-PM,
+Fidesz,FIDESZ,FIDESZ,party,158221,mapped,manual_alias,86421.0,Federation of Young Democrats,FiDeSz,
+Fidesz-frakció,FIDESZ-FRAKCIÓ,FIDESZFRAKCIO,faction,14516,mapped,manual_alias,86421.0,Federation of Young Democrats,FiDeSz,Faction label mapped to Fidesz.
+Huxit,HUXIT,HUXIT,party,170,mapped,manual_alias,86711.0,Our Homeland Movement,,Volner/Huxit splinter label has no separate MPDS row; aligned with the nearest Our Homeland MPDS series.
+JOBBIK,JOBBIK,JOBBIK,party,67610,mapped,manual_alias,86710.0,Movement for a Better Hungary,Jobbik,
+JOBBIK-frakció,JOBBIK-FRAKCIÓ,JOBBIKFRAKCIO,faction,13,mapped,manual_alias,86710.0,Movement for a Better Hungary,Jobbik,Faction label mapped to Jobbik.
+KDNP,KDNP,KDNP,party,76966,mapped,manual_alias,86421.0,Alliance of Federation of Young Democrats - Christian Democratic People's Party,FiDeSz-KDNP,Modern KDNP speeches are aligned with the Fidesz-KDNP joint manifesto series.
+LMP,LMP,LMP,party,27668,mapped,manual_alias,86110.0,Politics Can Be Different,LMP,
+LMP-frakció,LMP-FRAKCIÓ,LMPFRAKCIO,faction,4089,mapped,manual_alias,86110.0,Politics Can Be Different,LMP,Faction label mapped to LMP.
+MLP,MLP,MLP,party,1470,mapped,manual_alias,86221.0,Democratic Coalition,DK,Hungarian Liberal Party has no standalone MPDS row; aligned with DK as its closest later parliamentary affiliation.
+MNOÖ,MNOÖ,MNOO,minority_list,2017,unmapped,,,,,"Hungarian German national minority list, not treated as an MPDS manifesto party."
+MSZP,MSZP,MSZP,party,63116,mapped,manual_alias,86220.0,Hungarian Socialist Party,MSzP,
+MSZP-frakció,MSZP-FRAKCIÓ,MSZPFRAKCIO,faction,923,mapped,manual_alias,86220.0,Hungarian Socialist Party,MSzP,Faction label mapped to Hungarian Socialist Party.
+Mi Hazánk,MI HAZÁNK,MIHAZANK,party,5555,mapped,manual_alias,86711.0,Our Homeland Movement,,
+Momentum,MOMENTUM,MOMENTUM,party,2206,mapped,manual_alias,86001.0,United for Hungary,,Momentum has no standalone MPDS row; post-2022 speech label aligned with the United for Hungary coalition manifesto.
+Momentum-frakció,MOMENTUM-FRAKCIÓ,MOMENTUMFRAKCIO,faction,184,mapped,manual_alias,86001.0,United for Hungary,,Momentum faction has no standalone MPDS row; aligned with the United for Hungary coalition manifesto.
+Párbeszéd,PÁRBESZÉD,PARBESZED,party,7473,mapped,manual_alias,86111.0,Dialogue for Hungary,PM,
+Párbeszéd-frakció,PÁRBESZÉD-FRAKCIÓ,PARBESZEDFRAKCIO,faction,1344,mapped,manual_alias,86111.0,Dialogue for Hungary,PM,Faction label mapped to Dialogue for Hungary.
+Szolidaritás,SZOLIDARITÁS,SZOLIDARITAS,party,255,mapped,manual_alias,86340.0,Together 2014 -Dialogue for Hungary Electoral Alliance,E14-PM,Hungarian Solidarity Movement has no standalone MPDS row; aligned with the Together 2014 alliance series.
+Volner,VOLNER,VOLNER,party,64,mapped,manual_alias,86711.0,Our Homeland Movement,,Volner Party has no standalone MPDS row; aligned with the nearest Our Homeland MPDS series.
+ÚK,ÚK,UK,party,886,mapped,manual_alias,86110.0,Politics Can Be Different,LMP,Új Kezdet has no standalone MPDS row; aligned with the LMP electoral-cooperation manifesto series.

@@ -1,0 +1,53 @@
+country_code,speech_party,current_status,llm_verdict,confidence,recommended_action,mpds_partyname_or_target,rationale
+GB,0UBS,unmapped,likely_non_party_status,medium,treat_as_non_party_or_manual_review,,"Used in short interstitial periods for former Conservatives and once alongside party.NA; likely a whip or affiliation status rather than a stable manifesto party."
+GB,64RT,unmapped,verified_party_not_in_mpds,high,keep_as_real_party_not_in_mpds,,"Local metadata identifies this as Respect; it is a genuine speech-side party label and there is no corresponding MPDS United Kingdom row."
+GB,A,mapped,verified_match,high,keep_mapped,Alliance Party of Northern Ireland,"Commons label A corresponds to Alliance and the mapped MPDS party is the correct Northern Irish party."
+GB,BI,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Bishops are Lords spiritual benches and not electoral manifesto parties.
+GB,CB,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Crossbench is a Lords grouping and not an electoral manifesto party.
+GB,CON,mapped,verified_match,high,keep_mapped,Conservative Party,"Manual alias is substantively correct."
+GB,DUP,mapped,verified_match,high,keep_mapped,Democratic Unionist Party,"Exact abbreviation match is substantively correct."
+GB,GP,mapped,verified_match,high,keep_mapped,Green Party of England and Wales,"Speech label GP aligns with the MPDS Green Party row used in Westminster speeches."
+GB,I,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Independent is not a manifesto party.
+GB,IGC,unmapped,verified_party_not_in_mpds,high,keep_as_real_party_not_in_mpds,,"Local metadata identifies this as The Independent Group for Change; it is present in speeches but absent from MPDS."
+GB,IL,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Independent Labour is not a standalone MPDS manifesto party.
+GB,L8TA,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Independent Liberal Democrat is not a standalone MPDS manifesto party.
+GB,LAB,mapped,verified_match,high,keep_mapped,Labour Party,"Manual alias is substantively correct."
+GB,LD,mapped,verified_match,high,keep_mapped,Liberal Democrats,"Manual alias is substantively correct."
+GB,LI,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Local metadata identifies this as Labour Independent and not a standalone manifesto party.
+GB,LJ95,unmapped,likely_party_alias_not_in_mpds,medium,manual_review_or_keep_unmapped,,"Appears on the same MPs and dates as IGC; likely a Change UK or TIG transition label rather than a distinct MPDS party."
+GB,PAUB,unmapped,likely_party_not_in_mpds,medium,keep_as_real_party_not_in_mpds,,"James Hanvey and Kenny MacAskill move from SNP to PAUB in March 2021; likely Alba Party by inference, which is absent from MPDS."
+GB,PC,mapped,verified_match,high,keep_mapped,The Party of Wales,"Exact abbreviation match is substantively correct."
+GB,QMZZ,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Independent Ulster Unionist is not a standalone MPDS manifesto party.
+GB,SDLP,mapped,verified_match,high,keep_mapped,Social Democratic and Labour Party,"Exact abbreviation match is substantively correct."
+GB,SNP,mapped,verified_match,high,keep_mapped,Scottish National Party,"Exact abbreviation match is substantively correct."
+GB,UKIP,mapped,verified_match,high,keep_mapped,United Kingdom Independence Party,"Exact abbreviation match is substantively correct."
+GB,UUP,mapped,verified_match,high,keep_mapped,Ulster Unionist Party,"Exact abbreviation match is substantively correct."
+GB,ZKPW,unmapped,verified_non_party_label,high,keep_as_parliamentary_label,,Independent Social Democrat is not a standalone MPDS manifesto party.
+EE,EKRE,mapped,verified_match,high,keep_mapped,Conservative People's Party of Estonia,"Manual alias is substantively correct."
+EE,ISA,mapped,verified_match,high,keep_mapped,Pro Patria and Res Publica Union,"Speech label ISA is the later Isamaa label and the chosen MPDS party is the correct lineage match."
+EE,KE,mapped,verified_match,high,keep_mapped,Estonian Center Party,"This manual correction is necessary because KE in speeches means Keskerakond rather than the older Coalition Party row in MPDS."
+EE,RE,mapped,verified_match,high,keep_mapped,Estonian Reform Party,"Manual alias is substantively correct."
+EE,SDE,mapped,verified_match,high,keep_mapped,Social Democratic Party,"Manual alias is substantively correct."
+EE,VABA,mapped,verified_match,high,keep_mapped,Free Party,"Manual alias is substantively correct."
+LV,AP,mapped,verified_match,high,keep_mapped,Development/For!,"Manual alias is substantively correct."
+LV,JK,mapped,verified_match,high,keep_mapped,New Conservative Party,"Speech label JK is Jauna konservativa and the mapped MPDS row is the right party."
+LV,JV,mapped,verified_match,high,keep_mapped,New Unity,"Manual alias is substantively correct."
+LV,KPV-LV,mapped,verified_match,high,keep_mapped,Who owns the state?,"This is the correct MPDS row for the Latvian KPV LV label."
+LV,LRA,mapped,verified_match,high,keep_mapped,Latvian Association of Regions,"Manual alias is substantively correct."
+LV,NSL,mapped,verified_match,high,keep_mapped,For Latvia from the Heart,"Speech label NSL is the Latvian abbreviation and the mapped MPDS row is correct."
+LV,SASKAŅA,mapped,verified_match,high,keep_mapped,"Social Democartic Party ""Harmony""","Speech label uses the Latvian name SASKANA and the mapped MPDS Harmony row is the correct party."
+LV,VIENOTĪBA,mapped,verified_match,high,keep_mapped,Unity,"Speech label uses the Latvian party name and the mapped MPDS Unity row is correct."
+LV,ZZS,mapped,verified_match,high,keep_mapped,Greens' and Farmers’ Union,"Manual alias is substantively correct."
+CZ,ANO2011,mapped,verified_match,high,keep_mapped,ANO 2011,"Canonical matching is substantively correct."
+CZ,CSSD,mapped,verified_match,high,keep_mapped,Czech Social Democratic Party,"Canonical abbreviation matching to CSSD from ČSSD is substantively correct."
+CZ,KDU-ČSL,mapped,verified_match,high,keep_mapped,Christian and Democratic Union - Czech People's Party,"Exact abbreviation match is substantively correct."
+CZ,KSCM,mapped,verified_match,high,keep_mapped,Communist Party of Bohemia and Moravia,"Canonical abbreviation matching from KSCM to KSČM is substantively correct."
+CZ,ODS,mapped,verified_match,high,keep_mapped,Civic Democratic Party,"Exact abbreviation match is substantively correct."
+CZ,PirSTAN,unmapped,verified_coalition_label,high,keep_as_parliamentary_label,,"PirSTAN is a coalition label rather than a single manifesto party and should stay out of the real-party-missing list."
+CZ,Piráti,mapped,verified_match,high,keep_mapped,Czech Pirate Party,"Exact abbreviation match is substantively correct."
+CZ,SPD,mapped,verified_match,high,keep_mapped,Freedom and Direct Democracy,"Exact abbreviation match is substantively correct."
+CZ,SPOLU,unmapped,verified_coalition_label,high,keep_as_parliamentary_label,,"SPOLU is a coalition label rather than a single manifesto party and should stay out of the real-party-missing list."
+CZ,STAN,mapped,verified_match,high,keep_mapped,Mayors and Independents,"Exact abbreviation match is substantively correct."
+CZ,TOP09,mapped,verified_match,high,keep_mapped,"Tradition, Responsibility, Prosperity 09","Exact abbreviation match is substantively correct."
+CZ,Usvit,mapped,verified_match,high,keep_mapped,Tomio Okamura's Dawn of Direct Democracy,"Canonical abbreviation matching from Usvit to Úsvit is substantively correct."
+LT,,missing_input,blocked_missing_speech_extract,high,add_or_generate_ParlaMint_LT_extract,,"Lithuania cannot be verified or mapped in this workspace because ParlaMint-LT_extracted.csv is missing."

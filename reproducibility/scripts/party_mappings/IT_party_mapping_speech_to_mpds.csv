@@ -1,0 +1,18 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+PD,PD,PD,party,38118,mapped,manual_alias,32440,Democratic Party,PD,
+M5S.1,M5S,M5S,party,28382,mapped,manual_alias,32956,Five Star Movement,M5S,
+M5S.2,M5S,M5S,party,15610,mapped,manual_alias,32956,Five Star Movement,M5S,
+LN-Aut,LN-AUT,LN,party,15369,mapped,manual_alias,32720,Northern League,LN,
+FI-BP,FI-BP,FI,party,14910,mapped,manual_alias,32610,Go Italy,FI,
+L-SP,L-SP,L,party,13722,mapped,manual_alias,32720,League,L,
+PdL,PDL,PDL,party,13525,mapped,manual_alias,32061,People of Freedom,PdL,
+FdI,FDI,FDI,party,6868,mapped,manual_alias,32630,Brothers of Italy,FDI,
+FI-PdL XVII,FI-PDL XVII,FI,party,3144,mapped,manual_alias,32610,Go Italy,FI,
+L-SP-PSd'Az,L-SP-PSDAZ,L,party,3095,mapped,manual_alias,32720,League,L,
+SCpI,SCPI,SC,party,2094,mapped,manual_alias,32460,Civic Choice,SC,
+"Aut (SVP, UV, PATT, UPT)-PSI-MAIE",AUT SVP UV PATT UPT PSI MAIE,SVP-PATT,party,2083,mapped,manual_alias,32090,Coalition of South Tyrolean People's Party and Trentino Tyrolean Autonomist Party,SVP-PATT,"Autonomy coalition mapped to SVP-PATT lineage; review before party-level analysis."
+"Aut (SVP, UV, PATT, UPT) - PSI",AUT SVP UV PATT UPT PSI,SVP-PATT,party,2056,mapped,manual_alias,32090,Coalition of South Tyrolean People's Party and Trentino Tyrolean Autonomist Party,SVP-PATT,"Autonomy coalition mapped to SVP-PATT lineage; review before party-level analysis."
+"Aut (SVP-PATT, UV)",AUT SVP-PATT UV,SVP-PATT,party,1953,mapped,manual_alias,32090,Coalition of South Tyrolean People's Party and Trentino Tyrolean Autonomist Party,SVP-PATT,
+Art.1-MDP,ART1-MDP,LEU,party,921,mapped,manual_alias,32031,Free and Equal,LeU,
+PI,PI,PI,party,467,mapped,manual_alias,32528,Pact for Italy,PI,
+FIBP-UDC,FIBP-UDC,FI,party,88,mapped,manual_alias,32610,Go Italy,FI,"Coalition label mapped to Forza Italia component; review before party-level analysis."

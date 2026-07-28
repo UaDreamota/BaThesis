@@ -1,0 +1,10 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+KO,KO,KO,party,289791,mapped,manual_alias,92435,Civic Platform,PO,Civic Coalition speech label aligned with the Civic Platform MPDS manifesto series.
+KP-PSL,KP-PSL,KPPSL,party,50057,mapped,manual_alias,92050,Polish Coalition,PSL,Parliamentary club label aligned with the Polish Coalition / PSL MPDS manifesto series.
+Konfederacja,KONFEDERACJA,KONFEDERACJA,party,10774,mapped,manual_alias,92070,Confederation Liberty and Independence,KWiN,
+Kukiz15,KUKIZ15,KUKIZ15,party,29919,mapped,manual_alias,92720,Kukiz'15,,
+Lewica,LEWICA,LEWICA,party,47238,mapped,manual_alias,92022,The Left,,Speech label aligned with the post-2019 The Left MPDS manifesto series.
+PiS,PIS,PIS,party,471749,mapped,manual_alias,92436,Law and Justice,PiS,
+PrzywrócićPrawo,PRZYWRÓCIĆPRAWO,PRZYWROCICPRAWO,party,1290,mapped,manual_alias,92720,Kukiz'15,,Parliamentary circle formed by MPs elected from Kukiz'15 lists; no separate MPDS manifesto row.
+Teraz,TERAZ,TERAZ,party,2548,mapped,manual_alias,92450,Modern,.N,Parliamentary circle split from Modern; no separate MPDS manifesto row.
+UPR,UPR,UPR,party,2628,mapped,manual_alias,92432,Union of Real Politics,UPR,

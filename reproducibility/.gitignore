@@ -1,0 +1,14 @@
+.env
+.tgz
+.taz
+
+# Local Python/runtime artifacts
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# OS/editor and plotting caches
+.DS_Store
+.cache/
+.mplconfig/

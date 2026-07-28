@@ -1,0 +1,13 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+ANO2011,ANO2011,ANO2011,party,124752,mapped,canonical_name,82430.0,ANO 2011,ANO,
+CSSD,CSSD,CSSD,party,57767,mapped,canonical_abbrev,82320.0,Czech Social Democratic Party,ČSSD,
+KDU-ČSL,KDU-ČSL,KDUCSL,party,34223,mapped,exact_abbrev,82523.0,Christian and Democratic Union - Czech People's Party,KDU-ČSL,
+KSCM,KSCM,KSCM,party,60112,mapped,canonical_abbrev,82220.0,Communist Party of Bohemia and Moravia,KSČM,
+ODS,ODS,ODS,party,61131,mapped,exact_abbrev,82413.0,Civic Democratic Party,ODS,
+PirSTAN,PIRSTAN,PIRSTAN,coalition,16617,unmapped,,,,,"PirSTAN is a parliamentary coalition label, not a single MPDS party."
+Piráti,PIRÁTI,PIRATI,party,30325,mapped,exact_abbrev,82953.0,Czech Pirate Party,Piráti,
+SPD,SPD,SPD,party,34235,mapped,exact_abbrev,82721.0,Freedom and Direct Democracy,SPD,
+SPOLU,SPOLU,SPOLU,coalition,28889,unmapped,,,,,"SPOLU is a parliamentary coalition label, not a single MPDS party."
+STAN,STAN,STAN,party,5162,mapped,exact_abbrev,82610.0,Mayors and Independents,STAN,
+TOP09,TOP09,TOP09,party,45484,mapped,exact_abbrev,82530.0,"Tradition, Responsibility, Prosperity 09",TOP09,
+Usvit,USVIT,USVIT,party,8569,mapped,canonical_abbrev,82720.0,Tomio Okamura's Dawn of Direct Democracy,Úsvit,

@@ -1,0 +1,112 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+ЄС,ЄС,ЄС,party,14424,mapped,manual_alias,98631.0,European Solidarity,,
+ЄдЦ,ЄДЦ,ЄДЦ,party,439,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Єдність,ЄДНІСТЬ,ЄДНІСТЬ,party,515,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+АПУ06,АПУ06,АПУ06,party,45,mapped,manual_alias,98811.0,Agrarian Party of Ukraine,APU,Agrarian Party label in the speech data.
+АПУ96,АПУ96,АПУ96,party,250,mapped,manual_alias,98811.0,Agrarian Party of Ukraine,APU,Agrarian Party label in the speech data.
+БПП,БПП,БПП,bloc,123208,mapped,manual_alias,98631.0,Petro Poroshenko Bloc ‘Solidarity',,
+Батьківщина,БАТЬКІВЩИНА,БАТЬКІВЩИНА,bloc,110938,mapped,manual_alias,98617.0,All-Ukrainian Union ‘Fatherland',,
+Воля,ВОЛЯ,ВОЛЯ,party,869,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Відродження,ВІДРОДЖЕННЯ,ВІДРОДЖЕННЯ,party,1187,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Голос,ГОЛОС,ГОЛОС,group,7537,mapped,manual_alias,98450.0,Voice,,
+Громада,ГРОМАДА,ГРОМАДА,group,239,mapped,manual_alias,98324.0,All-Ukrainian Association ‘Community',,
+Заступ,ЗАСТУП,ЗАСТУП,party,17,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+КПУ,КПУ,КПУ,party,156893,mapped,manual_alias,98221.0,Communist Party of Ukraine,KPU,
+КУН,КУН,КУН,party,25,mapped,manual_alias,98711.0,Congress of Ukrainian Nationalists,KUN,
+Край,КРАЙ,КРАИ,party,1947,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Ляшко,ЛЯШКО,ЛЯШКО,party,16665,mapped,manual_alias,98730.0,Radical Party of Oleh Lyashko,,
+НДП,НДП,НДП,party,683,mapped,manual_alias,98426.0,People’s Democratic Party of Ukraine,NDPU,
+НП,НП,НП,party,1360,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+НСНУ,НСНУ,НСНУ,party,32,mapped,manual_alias,98615.0,Viktor Yushchenko Bloc ‘Our Ukraine',NU,
+НУ,НУ,НУ,party,1934,mapped,manual_alias,98615.0,Viktor Yushchenko Bloc ‘Our Ukraine',NU,
+НФ,НФ,НФ,party,131203,mapped,manual_alias,98618.0,People's Front,,
+Нові,НОВІ,НОВІ,party,82,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+ОПЗЖ,ОПЗЖ,ОПЗЖ,party,20374,mapped,manual_alias,98340.0,Opposition Platform - For Life,,
+Опоблок,ОПОБЛОК,ОПОБЛОК,party,8548,mapped,manual_alias,98910.0,Opposition Bloc,,MPDS contains two Opposition Bloc rows; this file uses the 2014 entry.
+ПНЕРУ,ПНЕРУ,ПНЕРУ,party,79,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+ПП,ПП,ПП,party,1062,mapped,manual_alias,98423.0,Labour Party,PT,
+ПР,ПР,ПР,party,113000,mapped,manual_alias,98952.0,Party of Regions,PR,
+ПС,ПС,ПС,party,10,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Патріот,ПАТРІОТ,ПАТРІОТ,party,306,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Позиція,ПОЗИЦІЯ,ПОЗИЦІЯ,party,650,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+РПУ,РПУ,РПУ,party,42,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+РУХ,РУХ,РУХ,party,746,mapped,manual_alias,98611.0,Popular Movement of Ukraine,Rukh,
+СДПУ(о),СДПУ(О),СДПУО,party,6487,mapped,manual_alias,98427.0,Social Democratic Party of Ukraine (United),SDPU(O),
+СЛ,СЛ,СЛ,party,23,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+СН,СН,СН,party,73808,mapped,manual_alias,98440.0,Servant of the People,,
+СПУ,СПУ,СПУ,party,41686,mapped,manual_alias,98321.0,Socialist Party of Ukraine,SPU,
+СУ,СУ,СУ,party,610,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Самопоміч,САМОПОМІЧ,САМОПОМІЧ,party,46694,mapped,manual_alias,98620.0,Union ‘Self Help',,
+Свобода,СВОБОДА,СВОБОДА,party,16679,mapped,manual_alias,98720.0,All-Ukrainian Union ‘Freedom',,
+Союз,СОЮЗ,СОЮЗ,party,6,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+Справи,СПРАВИ,СПРАВИ,party,2,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+СіЧ,СІЧ,СІЧ,party,104,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+УВперед,УВПЕРЕД,УВПЕРЕД,party,55328,mapped,manual_alias,98428.0,"Forward, Ukraine!",,
+УДАР,УДАР,УДАР,party,5592,mapped,manual_alias,98630.0,Ukrainian Democratic Alliance for Reform,UDAR,
+УКРОП,УКРОП,УКРОП,party,2537,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+УМП,УМП,УМП,party,10,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+УНП,УНП,УНП,party,343,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+УП,УП,УП,party,27,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+УСГ,УСГ,УСГ,party,4376,unmapped,,,,,Party label present in UA parliamentary speeches but not mapped to an MPDS Ukraine party.
+бБЮТ,ББЮТ,ББЮТ,bloc,12366,mapped,manual_alias,98616.0,Juliya Tymoshenko Election Bloc,BYuT,
+бДемБлок,БДЕМБЛОК,БДЕМБЛОК,bloc,41,unmapped,,,,,Bloc label with no confident direct MPDS party match.
+бЗаЄдУ,БЗАЄДУ,БЗАЄДУ,bloc,99359,mapped,manual_alias,98429.0,For a United Ukraine!,ZYU,
+бЛитвин,БЛИТВИН,БЛИТВИН,bloc,102570,mapped,manual_alias,98081.0,Lytvyn Bloc,LB,
+бНУ02,БНУ02,БНУ02,bloc,49620,mapped,manual_alias,98615.0,Viktor Yushchenko Bloc ‘Our Ukraine',NU,
+бНУ06,БНУ06,БНУ06,bloc,7797,mapped,manual_alias,98615.0,Viktor Yushchenko Bloc ‘Our Ukraine',NU,
+бНУНС,БНУНС,БНУНС,bloc,1297,mapped,manual_alias,98615.0,‘Our Ukraine - People's Self-Defense',NU-NS,
+гЄвВибір,ГЄВВИБІР,ГЄВВИБІР,group,32,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гВУ,ГВУ,ГВУ,group,225,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гВоляН,ГВОЛЯН,ГВОЛЯН,group,1898,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гВоляН05,ГВОЛЯН05,ГВОЛЯН05,group,76,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гВідродження15,ГВІДРОДЖЕННЯ15,ГВІДРОДЖЕННЯ15,group,175,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гДемІ,ГДЕМІ,ГДЕМІ,group,585,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гДемІ-Народовладдя,ГДЕМІ-НАРОДОВЛАДДЯ,ГДЕМІНАРОДОВЛАДДЯ,group,208,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гДовіра,ГДОВІРА,ГДОВІРА,group,3144,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гДовіраН,ГДОВІРАН,ГДОВІРАН,group,173,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гЕР,ГЕР,ГЕР,group,423,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гЗМ,ГЗМ,ГЗМ,group,543,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гНБЛ,ГНБЛ,ГНБЛ,group,112,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гНарВибір,ГНАРВИБІР,ГНАРВИБІР,group,71,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гНародовладдя,ГНАРОДОВЛАДДЯ,ГНАРОДОВЛАДДЯ,group,1832,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гПВідродження15,ГПВІДРОДЖЕННЯ15,ГПВІДРОДЖЕННЯ15,group,2700,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гПЗМ,ГПЗМ,ГПЗМ,group,2994,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гСЄУ,ГСЄУ,ГСЄУ,group,414,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гСоюз,ГСОЮЗ,ГСОЮЗ,group,28,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+гЦентр,ГЦЕНТР,ГЦЕНТР,group,218,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+грДемУ,ГРДЕМУ,ГРДЕМУ,group,200,unmapped,,,,,Parliamentary group label with no direct MPDS party match.
+фЄС,ФЄС,ФЄС,faction,5758,mapped,manual_alias,98631.0,European Solidarity,,
+фЄдУ,ФЄДУ,ФЄДУ,faction,56,mapped,manual_alias,98429.0,For a United Ukraine!,ZYU,Faction label aligned with For a United Ukraine!
+фЄдУп,ФЄДУП,ФЄДУП,faction,813,mapped,manual_alias,98429.0,For a United Ukraine!,ZYU,Faction label aligned with For a United Ukraine!
+фАПУ,ФАПУ,ФАПУ,faction,104,mapped,manual_alias,98811.0,Agrarian Party of Ukraine,APU,Faction label mapped to Agrarian Party of Ukraine.
+фБПП,ФБПП,ФБПП,faction,2974,mapped,manual_alias,98631.0,Petro Poroshenko Bloc ‘Solidarity',,
+фБЮТ,ФБЮТ,ФБЮТ,faction,2869,mapped,manual_alias,98616.0,Juliya Tymoshenko Election Bloc,BYuT,
+фБатьківщина,ФБАТЬКІВЩИНА,ФБАТЬКІВЩИНА,faction,5108,mapped,manual_alias,98617.0,All-Ukrainian Union ‘Fatherland',,
+фВпередУ,ФВПЕРЕДУ,ФВПЕРЕДУ,faction,66,mapped,manual_alias,98428.0,"Forward, Ukraine!",,
+фВідродження05,ФВІДРОДЖЕННЯ05,ФВІДРОДЖЕННЯ05,faction,160,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фГолос,ФГОЛОС,ФГОЛОС,faction,2602,mapped,manual_alias,98450.0,Voice,,
+фКПУ,ФКПУ,ФКПУ,faction,34,mapped,manual_alias,98221.0,Communist Party of Ukraine,KPU,
+фНАПУ,ФНАПУ,ФНАПУ,faction,139,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фНДП,ФНДП,ФНДП,faction,161,mapped,manual_alias,98426.0,People’s Democratic Party of Ukraine,NDPU,
+фНДП-ПППУ,ФНДП-ПППУ,ФНДППППУ,faction,49,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фНДП-Республіка,ФНДП-РЕСПУБЛІКА,ФНДПРЕСПУБЛІКА,faction,47,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фНДП-ТУ,ФНДП-ТУ,ФНДПТУ,faction,17,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фНП05,ФНП05,ФНП05,faction,904,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фНУ02,ФНУ02,ФНУ02,faction,1936,mapped,manual_alias,98615.0,Viktor Yushchenko Bloc ‘Our Ukraine',NU,
+фНФ,ФНФ,ФНФ,faction,199,mapped,manual_alias,98618.0,People's Front,,
+фОПЗЖ,ФОПЗЖ,ФОПЗЖ,faction,253,mapped,manual_alias,98340.0,Opposition Platform - For Life,,
+фОпоблок,ФОПОБЛОК,ФОПОБЛОК,faction,1174,mapped,manual_alias,98910.0,Opposition Bloc,,Faction label mapped to the 2014 Opposition Bloc MPDS row.
+фПППУ,ФПППУ,ФПППУ,faction,240,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фПППУ-ТУ,ФПППУ-ТУ,ФПППУТУ,faction,812,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фПР,ФПР,ФПР,faction,423,mapped,manual_alias,98952.0,Party of Regions,PR,
+фПРП,ФПРП,ФПРП,faction,7,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фРегУ,ФРЕГУ,ФРЕГУ,faction,1508,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фСДПУ(о),ФСДПУ(О),ФСДПУО,faction,1042,mapped,manual_alias,98427.0,Social Democratic Party of Ukraine (United),SDPU(O),
+фСН,ФСН,ФСН,faction,87454,mapped,manual_alias,98440.0,Servant of the People,,
+фСПУ,ФСПУ,ФСПУ,faction,77,mapped,manual_alias,98321.0,Socialist Party of Ukraine,SPU,
+фСамопоміч,ФСАМОПОМІЧ,ФСАМОПОМІЧ,faction,476,mapped,manual_alias,98620.0,Union ‘Self Help',,
+фТУ,ФТУ,ФТУ,faction,356,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фТУ-НДП,ФТУ-НДП,ФТУНДП,faction,68,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фУДАР,ФУДАР,ФУДАР,faction,74,mapped,manual_alias,98630.0,Ukrainian Democratic Alliance for Reform,UDAR,
+фУНП,ФУНП,ФУНП,faction,60,unmapped,,,,,Faction label with no confident direct MPDS party match.
+фрНСНУ05,ФРНСНУ05,ФРНСНУ05,faction,550,mapped,manual_alias,98615.0,Viktor Yushchenko Bloc ‘Our Ukraine',NU,

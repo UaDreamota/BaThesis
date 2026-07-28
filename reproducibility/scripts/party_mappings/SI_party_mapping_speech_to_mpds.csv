@@ -1,0 +1,25 @@
+speech_party,speech_party_norm,speech_party_canonical,speech_label_type,n_rows,mapping_status,match_method,mpds_party_id,mpds_partyname,mpds_partyabbrev,mapping_note
+DL,DL,DL,party,18175,mapped,manual_alias,97450.0,Gregor Virant's Civic List,LGV,Speech label DL aligned with the Civic List / Gregor Virant MPDS manifesto series.
+DLGV,DLGV,DLGV,party,2056,mapped,manual_alias,97450.0,Gregor Virant's Civic List,LGV,
+DeSUS,DESUS,DESUS,party,102375,mapped,manual_alias,97951.0,Democratic Party of Pensioners of Slovenia,DeSUS,
+Konkretno,KONKRETNO,KONKRETNO,party,604,mapped,manual_alias,97461.0,Modern Centre Party,SMC,Konkretno speech label aligned with the SMC / Modern Centre Party MPDS manifesto series.
+LDS,LDS,LDS,party,83433,mapped,manual_alias,97421.0,Liberal Democracy of Slovenia,LDS,
+LMŠ,LMŠ,LMS,party,31339,mapped,manual_alias,97341.0,List of Marjan Šarec,LMŠ,
+Levica,LEVICA,LEVICA,party,20238,mapped,manual_alias,97230.0,The Left,,
+Lipa,LIPA,LIPA,party,3862,mapped,manual_alias,97710.0,Slovenian National Party,SNS,Lipa was a splinter parliamentary label without a separate MPDS manifesto row; aligned with SNS.
+NP,NP,NP,unaffiliated,17119,unmapped,,,,,"Unaffiliated deputies label, not treated as an MPDS manifesto party."
+NSi,NSI,NSI,party,54268,mapped,manual_alias,97522.0,New Slovenian Christian People’s Party,Nsi,
+NeP,NEP,NEP,unaffiliated,3291,unmapped,,,,,"Unaffiliated deputies label, not treated as an MPDS manifesto party."
+PS,PS,PS,party,23279,mapped,manual_alias,97340.0,Zoran Janković's List - Positive Slovenia,PS,
+SAB,SAB,SAB,party,9795,mapped,manual_alias,97460.0,Party of Alenka Bratušek,SAB,
+SD,SD,SD,party,129050,mapped,manual_alias,97322.0,Social Democratic Party,SD,
+SDS,SDS,SDS,party,214078,mapped,manual_alias,97330.0,Slovenian Democratic Party,SDS,
+SLS,SLS,SLS,party,35267,mapped,manual_alias,97521.0,Slovenian People's Party,SLS,
+SLS+SKD,SLS+SKD,SLSSKD,party,2499,mapped,manual_alias,97521.0,Slovenian People's Party,SLS,Joint SLS+SKD parliamentary label aligned with the SLS MPDS manifesto series.
+SMC,SMC,SMC,party,75530,mapped,manual_alias,97461.0,Modern Centre Party,SMC,
+SMS,SMS,SMS,party,2636,mapped,manual_alias,97952.0,Party of Slovenian Youth,SMS,
+SNS,SNS,SNS,party,38098,mapped,manual_alias,97710.0,Slovenian National Party,SNS,
+ZL,ZL,ZL,party,11474,mapped,manual_alias,97020.0,United Left,ZL,
+ZLSD,ZLSD,ZLSD,party,32827,mapped,manual_alias,97321.0,Associated List of Social Democrats,ZLSD,
+ZaAB,ZAAB,ZAAB,party,1384,mapped,manual_alias,97460.0,Alliance of Alenka Bratušek,ZaAB,
+Zares,ZARES,ZARES,party,38773,mapped,manual_alias,97440.0,For Real,,
